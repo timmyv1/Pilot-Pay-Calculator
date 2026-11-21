@@ -1,0 +1,1599 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SWA Pilot Compensation Calculator with Per Diem</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: inputs panel on the left (sticky), results on the right: total first, then the outputs, year-by-year table and monthly detail. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#151e2b; --muted:#5a6879; --line:#dce2ea; --field:#ffffff;
+  --accent:#1f3f73; --accent-ink:#ffffff; --accent-soft:#e6edf8;
+  --c-salary:#2f5d9a; --c-pd:#3a8f86; --c-sti:#b0458a; --c-lti:#7a62b8; --c-401k:#c58a1c; --c-mb:#b5533f; --c-excess:#6f7f2e;
+  --warn:#8a4b08; --warn-soft:#fdf0e0; --bad:#b42318; --good:#1f7a4a; --now:#fff6d9; --est:#7a5a10; --est-soft:#fcf5e3;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141c; --surface:#171e29; --ink:#e8edf4; --muted:#9aa9ba; --line:#2a3544; --field:#121820;
+    --accent:#7fa7e6; --accent-ink:#0d1626; --accent-soft:#1a2a45;
+    --c-salary:#6f9ee0; --c-pd:#5cc2b6; --c-sti:#e08ac0; --c-lti:#a891e0; --c-401k:#e3ae48; --c-mb:#e98a76; --c-excess:#b4c561;
+    --warn:#f0b36b; --warn-soft:#2f2415; --bad:#ff8a80; --good:#6fd09a; --now:#2e2810; --est:#ecc766; --est-soft:#2b2512; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --surface:#171e29; --ink:#e8edf4; --muted:#9aa9ba; --line:#2a3544; --field:#121820;
+  --accent:#7fa7e6; --accent-ink:#0d1626; --accent-soft:#1a2a45;
+  --c-salary:#6f9ee0; --c-pd:#5cc2b6; --c-sti:#e08ac0; --c-lti:#a891e0; --c-401k:#e3ae48; --c-mb:#e98a76; --c-excess:#b4c561;
+  --warn:#f0b36b; --warn-soft:#2f2415; --bad:#ff8a80; --good:#6fd09a; --now:#2e2810; --est:#ecc766; --est-soft:#2b2512; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1760px;margin:0 auto;min-width:0}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0 0 18px;color:var(--muted);max-width:80ch}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.inputs{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.inputs h2{margin:0 0 12px;font-size:1rem}
+fieldset{border:0;margin:0 0 16px;padding:0}
+legend{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0;margin-bottom:8px}
+.f{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:4px 10px;align-items:center;margin:0 0 9px}
+.f label{font-size:.9rem;line-height:1.25}
+.f label small{display:block;color:var(--muted);font-size:.72rem}
+.f .inp{position:relative}
+.f input,.f select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink);font:inherit;font-size:.9rem;font-variant-numeric:tabular-nums}
+.f .inp.pct input{padding-right:26px}
+.f .inp.pct::after{content:"%";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.f input:focus-visible,.f select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.f input[aria-invalid=true]{border-color:var(--bad)}
+.f .err{grid-column:1/-1;color:var(--bad);font-size:.78rem;margin-top:-2px}
+.f .link{grid-column:1/-1;justify-self:start;background:none;border:0;padding:0;color:var(--accent);font-size:.8rem;text-decoration:underline;cursor:pointer}
+.finalgrid{display:grid;grid-template-columns:minmax(240px,340px) minmax(0,1fr);gap:8px 28px;align-items:start}
+.need{background:var(--accent-soft);border-radius:12px;padding:14px 16px}
+.need .k{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.need .n{font-size:2.3rem;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;margin:2px 0 6px}
+.need p{margin:0 0 8px;font-size:.84rem;color:var(--ink)}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:.86rem;cursor:pointer}
+.chk input{margin-top:3px}
+@media (max-width:760px){.finalgrid{grid-template-columns:minmax(0,1fr)}}
+details.adv{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+details.adv summary{cursor:pointer;font-weight:600;font-size:.9rem}
+details.adv .f{margin-top:10px}
+button{font:inherit;font-size:.86rem;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+.btnrow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hero{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:20px 22px;margin-bottom:14px}
+.hero .k{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;opacity:.85}
+.hero .big{font-size:2.6rem;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;margin:2px 0 6px}
+.hero .eq{font-size:.86rem;opacity:.92;max-width:75ch}
+.bar{display:flex;height:16px;border-radius:99px;overflow:hidden;margin:14px 0 8px;background:rgba(255,255,255,.25)}
+.bar span{display:block;height:100%;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem}
+.legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;border:1px solid rgba(255,255,255,.55)}
+.notes{display:grid;gap:8px;margin-bottom:14px}
+.note{padding:10px 12px;border-radius:10px;font-size:.88rem;border:1px solid var(--line);background:var(--surface)}
+.note.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.note.err{border-color:var(--bad);color:var(--bad)}
+.note.info{background:var(--est-soft);color:var(--est);border-color:transparent}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card.wide{grid-column:1/-1}
+.card h3{margin:0 0 8px;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .l{font-weight:600}
+.row .v{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;font-size:1.05rem}
+.row .why{grid-column:1/-1;color:var(--muted);font-size:.8rem;line-height:1.35}
+.row.sub .l{font-weight:500;padding-left:12px;color:var(--muted)}
+.row.sub .v{font-weight:600;font-size:.92rem;color:var(--muted)}
+.row.tot{border-top:2px solid var(--line)}
+.row.tot .v{font-size:1.15rem}
+.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:0}
+.lims{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 18px}
+.lims div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:6px 0;font-size:.88rem}
+.lims b{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:5px;vertical-align:1px;margin-left:6px}
+.tag.est{background:var(--est-soft);color:var(--est)}
+.tag.set{background:var(--accent-soft);color:var(--accent)}
+.scroll{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);font-size:.8rem}
+thead th{position:sticky;top:0;background:var(--surface);font-weight:600;font-size:.76rem;line-height:1.25;white-space:normal;vertical-align:bottom;z-index:2}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+thead th:first-child{z-index:3}
+tbody tr:last-child td{border-bottom:0}
+tr.pick td{background:var(--now)}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--accent-soft)}
+tr.pick:hover td{background:var(--now)}
+td.big{font-weight:700}
+tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+.card .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.card .hd h3{margin:0}
+.explain{color:var(--muted);font-size:.88rem;display:grid;gap:8px}
+.explain ol,.explain ul{margin:0;padding-left:20px;display:grid;gap:5px}
+.explain b{color:var(--ink)}
+.explain a{color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:.85rem;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.inputs{position:static;max-height:none}}
+@media (max-width:640px){.cards{grid-template-columns:minmax(0,1fr)}.hero .big{font-size:2.1rem}}
+/* Federal income tax section */
+.taxsec{margin-top:16px;padding:0}
+.taxsec>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
+.taxsec>summary::-webkit-details-marker{display:none}
+.taxsec>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin:0 4px}
+.taxsec[open]>summary::before{transform:rotate(45deg)}
+.taxsec>summary .t{font-weight:700;font-size:1rem}
+.taxsec>summary .s{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums}
+.taxbody{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;padding:16px;border-top:1px solid var(--line)}
+.taxin .chk{margin:2px 0 10px}
+.taxin .chk small{display:block;color:var(--muted);font-size:.72rem}
+.f input:disabled{opacity:.5;cursor:not-allowed}
+#nqyears{max-height:300px;overflow:auto;margin-top:8px}
+#yrrows{max-height:320px;overflow:auto;margin-top:8px}
+.yrow{display:grid;grid-template-columns:40px repeat(3,minmax(0,1fr));gap:5px;align-items:center;padding:3px 4px;border-bottom:1px solid var(--line);font-size:.82rem;font-variant-numeric:tabular-nums;border-radius:6px}
+.yrow.h{font-weight:600;color:var(--muted);font-size:.72rem;border-bottom:0}
+.yrow.custom{background:var(--accent-soft)}
+.yrow input{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--field);color:var(--ink);font:inherit;font-size:.84rem;font-variant-numeric:tabular-nums}
+.yrow .nqp input{padding-right:20px}
+.yrow input.ovr{border-color:var(--accent);font-weight:600}
+.nqrow{display:grid;grid-template-columns:44px minmax(0,1fr) 84px 58px;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:.86rem;font-variant-numeric:tabular-nums}
+.nqrow .chk{margin:0}
+.nqrow .tag{margin:0;justify-self:start}
+.nqp{position:relative}
+.nqp input{width:100%;padding:5px 22px 5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--field);color:var(--ink);font:inherit;font-size:.86rem}
+.nqp::after{content:"%";position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.nqp input:disabled{opacity:.45}
+/* Summary report */
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.primary:hover{filter:brightness(1.08)}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 16px}
+.topbar span{color:var(--muted);font-size:.84rem}
+#rptwrap{position:fixed;inset:0;z-index:50;background:rgba(10,15,25,.62);overflow:auto;padding:16px 12px 40px}
+.rptbar{position:sticky;top:0;z-index:2;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 12px;max-width:1000px}
+.rptbar button{background:#fff;color:#151e2b;border-color:#c9d2de}
+.rptbar button.primary{background:#1f3f73;color:#fff;border-color:#1f3f73}
+.rpt{background:#fff;color:#1a2230;font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:1000px;margin:0 auto;padding:34px 40px;font-size:12.5px;line-height:1.45;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.rpt .hdr{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;border-bottom:3px solid #1f3f73;padding-bottom:12px;flex-wrap:wrap}
+.rpt .eyebrow{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f3f73;font-weight:700}
+.rpt h1{font-size:22px;margin:2px 0 2px;letter-spacing:-.01em}
+.rpt .sub{color:#5a6879;font-size:12px}
+.rpt .stamp{text-align:right}
+.rpt .stamp .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5a6879;font-weight:700}
+.rpt .stamp .n{font-size:14px;font-weight:700}
+.rpt h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1f3f73;border-bottom:1.5px solid #1f3f73;padding-bottom:4px;margin:24px 0 10px}
+.rpt h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5a6879;margin:0 0 4px}
+.rpt .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:16px}
+.rpt .kpi{border:1px solid #dce2ea;border-radius:8px;padding:8px 10px;background:#f7f9fc}
+.rpt .kpi .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#5a6879;font-weight:700}
+.rpt .kpi .n{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.rpt .kpi .d{font-size:10px;color:#5a6879}
+.rpt table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rpt th,.rpt td{position:static!important;padding:4px 6px;border-bottom:1px solid #e3e8ee;text-align:right;font-size:10.5px;white-space:nowrap;color:#1a2230}
+.rpt td{background:#fff!important}
+.rpt th{background:#eef2f7!important;color:#33415a;font-weight:600;white-space:normal;vertical-align:bottom}
+.rpt th:first-child,.rpt td:first-child{text-align:left}
+.rpt tr.tot td{font-weight:700;border-top:1.5px solid #1f3f73}
+.rpt tr.hl td{background:#fff6d9!important}
+.rpt table.kv td{font-size:11px}
+.rpt table.kv td:first-child{color:#4a5668;white-space:normal}
+.rpt .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px}
+.rpt .note{font-size:10.5px;color:#5a6879;margin:6px 0 0}
+.rpt .disc{border:1px solid #e6c98a;background:#fdf6e6;color:#5c4207;border-radius:6px;padding:8px 10px;margin-top:12px;font-size:11px}
+.rpt .foot{margin-top:24px;border-top:1px solid #dce2ea;padding-top:10px;font-size:10px;color:#5a6879}
+.rpt section{break-inside:avoid}
+.rpt section.long{break-inside:auto}
+@media (max-width:760px){.rpt{padding:20px 16px}.rpt .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rpt .grid2{grid-template-columns:minmax(0,1fr)}}
+@media print{
+  @page{margin:.5in}
+  body.rpt-open{background:#fff;padding:0}
+  body.rpt-open .wrap,body.rpt-open .toast,body.rpt-open .rptbar{display:none!important}
+  body.rpt-open #rptwrap{position:static;background:#fff;padding:0;overflow:visible}
+  body.rpt-open .rpt{box-shadow:none;border-radius:0;padding:0;max-width:none}
+  .rpt h2{break-after:avoid}
+}
+.taxstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--accent-soft);border-radius:10px;padding:12px 14px;min-width:0}
+.stat .k{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.stat .n{font-size:1.5rem;font-weight:750;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:2px}
+.stat .d{font-size:.78rem;color:var(--muted);margin-top:2px}
+.fill{height:8px;border-radius:99px;background:var(--line);overflow:hidden;min-width:90px}
+.fill span{display:block;height:100%;background:var(--accent)}
+tr.cur td{background:var(--now);font-weight:600}
+@media (prefers-reduced-motion:reduce){.taxsec>summary::before{transition:none}}
+@media (max-width:980px){.taxbody{grid-template-columns:minmax(0,1fr)}.taxstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+
+<div class="wrap">
+  <h1>SWA Pilot Compensation Calculator with Per Diem</h1>
+  <p class="lede">Enter your dates, average TFP, domestic per diem hours and plan percentages. The calculator works out a year of pay, STI and LTI incentives, domestic per diem, 401(k), cash balance plan and excess income using the 2024 SWAPA pay rates and IRS limits. It stops at your retirement date.</p>
+
+  <div class="note warn" role="note" style="margin:0 0 14px"><b>Disclaimer:</b> This calculator is for educational purposes only and is not financial or tax advice. Results are estimates based on the inputs and assumptions shown; consult a qualified financial or tax professional before making decisions.</div>
+  <div class="topbar"><button type="button" id="summaryBtn" class="primary">Create summary</button><button type="button" id="resetAllBtn">Reset all inputs</button><button type="button" id="saveBtn">Save inputs</button><button type="button" id="loadBtn">Restore saved inputs</button><button type="button" id="clearSaveBtn">Clear saved</button><span id="saveStatus">Inputs not saved yet.</span></div>
+  <div class="layout">
+    <aside class="panel inputs" aria-label="Inputs">
+      <h2>Inputs</h2>
+      <form id="form" onsubmit="return false" autocomplete="off">
+        <fieldset>
+          <legend>Calculate for</legend>
+          <div class="f"><label for="year">Year</label><div class="inp"><select id="year"></select></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Pilot</legend>
+          <div class="f"><label for="dob">Date of birth<small>mm/dd/yyyy</small></label><div class="inp"><input id="dob" inputmode="numeric" placeholder="mm/dd/yyyy" maxlength="10"></div><div class="err" id="dob_e" hidden></div></div>
+          <div class="f"><label for="doh">Date of hire<small>mm/dd/yyyy</small></label><div class="inp"><input id="doh" inputmode="numeric" placeholder="mm/dd/yyyy" maxlength="10"></div><div class="err" id="doh_e" hidden></div></div>
+          <div class="f"><label for="upg">Date of captain upgrade<small>mm/dd/yyyy, blank if not yet set</small></label><div class="inp"><input id="upg" inputmode="numeric" placeholder="mm/dd/yyyy" maxlength="10"></div><div class="err" id="upg_e" hidden></div></div>
+          <div class="f"><label for="ret">Retirement date<small>mm/dd/yyyy, the day before the 65th birthday unless you change it</small></label><div class="inp"><input id="ret" inputmode="numeric" placeholder="mm/dd/yyyy" maxlength="10"></div><div class="err" id="ret_e" hidden></div><button type="button" class="link" id="retReset" hidden>Use the day before the 65th birthday</button></div>
+        </fieldset>
+        <fieldset>
+          <legend>Pay, incentives and per diem</legend>
+          <div class="f"><label for="tfp">Average TFP / month<small>default for every year</small></label><div class="inp"><input id="tfp" type="number" min="0" max="300" step="0.5" inputmode="decimal"></div><div class="err" id="tfp_e" hidden></div></div>
+          <div class="f"><label for="pd">Hours of Domestic Per Diem/Month<small>$2.90/hr in 2024, +2.5% each Jan 1 from 2025</small></label><div class="inp"><input id="pd" type="number" min="0" max="744" step="1" inputmode="decimal"></div><div class="err" id="pd_e" hidden></div></div>
+          <div class="f"><label for="sti">Short term incentive (STI)<small>% of previous year’s salary</small></label><div class="inp pct"><input id="sti" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="sti_e" hidden></div></div>
+          <div class="f"><label for="lti">Long term incentive (LTI)<small>% of salary</small></label><div class="inp pct"><input id="lti" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="lti_e" hidden></div></div>
+          <details class="adv" style="margin:4px 0 0"><summary>TFP, STI and LTI by year</summary>
+            <p class="explain" style="margin:8px 0 0;font-size:.8rem">Every year uses the defaults above. Change a value to set that year on its own; changed years are highlighted. Changing a default resets every year to the defaults.</p>
+            <div id="yrrows"></div>
+            <div class="btnrow" style="margin-top:8px"><button type="button" id="yrReset">Use the defaults for every year</button></div>
+          </details>
+        </fieldset>
+        <fieldset>
+          <legend>Retirement plans</legend>
+          <div class="f"><label for="self">Self 401k<small>% of salary + STI</small></label><div class="inp pct"><input id="self" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="self_e" hidden></div></div>
+          <div class="f"><label for="nec">Company 401k NEC<small>non-elective, % of salary</small></label><div class="inp pct"><input id="nec" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="nec_e" hidden></div></div>
+          <div class="f"><label for="ps">SWA profit sharing<small>% of salary</small></label><div class="inp pct"><input id="ps" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="ps_e" hidden></div></div>
+          <div class="f"><label for="mb">Cash balance plan (MBCBP)<small>% of salary</small></label><div class="inp pct"><input id="mb" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div><div class="err" id="mb_e" hidden></div></div>
+        </fieldset>
+        <details class="adv">
+          <summary>Assumptions for future years</summary>
+          <div class="f"><label for="irsg">IRS limit growth<small>per year after 2027</small></label><div class="inp pct"><input id="irsg" type="number" min="0" max="10" step="0.1" inputmode="decimal"></div></div>
+          <div class="f"><label for="payg">Pay rate growth<small>per year after 2028</small></label><div class="inp pct"><input id="payg" type="number" min="0" max="10" step="0.1" inputmode="decimal"></div></div>
+        </details>
+        <div class="btnrow"><button type="button" id="reset">Reset to example values</button></div>
+      </form>
+    </aside>
+
+    <main id="out" aria-live="polite"></main>
+  </div>
+
+  <details class="panel taxsec" id="taxsec">
+    <summary><span class="t">Federal income tax estimate</span><span class="s" id="taxsum"></span></summary>
+    <div class="taxbody">
+      <form class="taxin" onsubmit="return false" autocomplete="off" aria-label="Tax inputs">
+        <fieldset>
+          <legend>Filing</legend>
+          <div class="f"><label for="tyear">Tax year<small>any year, working or retired</small></label><div class="inp"><select id="tyear"><option value="">Same as calculator year</option></select></div></div>
+          <div class="f"><label for="tfs">Filing status</label><div class="inp"><select id="tfs"><option value="mfj">Married filing jointly</option><option value="single">Single</option></select></div></div>
+          <div class="f"><label for="tkids">Children under 17<small>child tax credit</small></label><div class="inp"><input id="tkids" type="number" min="0" max="20" step="1" inputmode="numeric"></div></div>
+          <div class="f"><label for="tdep">Other dependents<small>$500 credit each</small></label><div class="inp"><input id="tdep" type="number" min="0" max="20" step="1" inputmode="numeric"></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Other income and deductions</legend>
+          <div class="f"><label for="toth">Other taxable income ($)<small>spouse wages, interest, etc.</small></label><div class="inp"><input id="toth" type="number" min="0" step="100" inputmode="decimal"></div></div>
+          <div class="f"><label for="tpre">Other pre-tax deductions ($)<small>health premiums, HSA, etc.</small></label><div class="inp"><input id="tpre" type="number" min="0" step="100" inputmode="decimal"></div></div>
+          <label class="chk"><input type="checkbox" id="tpd"><span>Count domestic per diem as taxable<small>Off: treated as tax-free reimbursement</small></span></label>
+          <div class="f"><label for="t401">Self 401k contributions<small>regular deferral</small></label><div class="inp"><select id="t401"><option value="trad">Traditional (pre-tax)</option><option value="roth">Roth (after-tax)</option></select></div></div>
+          <label class="chk"><input type="checkbox" id="troth" checked><span>401k catch-up is Roth (after-tax)<small>Required from 2026 when prior-year wages are over $150,000</small></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Capital gains</legend>
+          <div class="f"><label for="tst">Short-term gains ($)<small>held 1 year or less, taxed as ordinary income</small></label><div class="inp"><input id="tst" type="number" min="0" step="100" inputmode="decimal"></div></div>
+          <div class="f"><label for="tlt">Long-term gains ($)<small>held over 1 year, 0/15/20% rates; include qualified dividends</small></label><div class="inp"><input id="tlt" type="number" min="0" step="100" inputmode="decimal"></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Future years</legend>
+          <div class="f"><label for="tg">Bracket growth<small>per year after 2027</small></label><div class="inp pct"><input id="tg" type="number" min="0" max="10" step="0.1" inputmode="decimal"></div></div>
+        </fieldset>
+      </form>
+      <div id="taxout" aria-live="polite"></div>
+    </div>
+  </details>
+
+  <details class="panel taxsec" id="projsec">
+    <summary><span class="t">Retirement accounts and RMDs</span><span class="s" id="projsum"></span></summary>
+    <div class="taxbody">
+      <form class="taxin" onsubmit="return false" autocomplete="off" aria-label="Retirement account inputs">
+        <fieldset>
+          <legend>Current balances</legend>
+          <div class="f"><label for="pstart">Balances as of January 1 of</label><div class="inp"><input id="pstart" type="number" min="2024" max="2100" step="1" inputmode="numeric"></div></div>
+          <div class="f"><label for="pt401">Traditional 401k ($)</label><div class="inp"><input id="pt401" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pr401">Roth 401k ($)</label><div class="inp"><input id="pr401" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pluv">Vested LUV stock ($)<small>current value of LTI shares already vested</small></label><div class="inp"><input id="pluv" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pluvbas">Cost basis of vested LUV ($)<small>value of those shares when they vested</small></label><div class="inp"><input id="pluvbas" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pcb">Cash balance plan (MBCBP) ($)<small>rolls into the traditional 401k at retirement</small></label><div class="inp"><input id="pcb" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="ptira">Traditional IRA ($)</label><div class="inp"><input id="ptira" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pbasis">After-tax basis in traditional IRA ($)<small>nondeductible contributions (Form 8606)</small></label><div class="inp"><input id="pbasis" type="number" min="0" step="100" inputmode="decimal"></div></div>
+          <div class="f"><label for="prira">Roth IRA ($)</label><div class="inp"><input id="prira" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Non-qualified deferral</legend>
+          <label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pnqon"><span>Default election: defer excess income to a non-qualified plan<small>not taxed when deferred; grows tax free at the expected return</small></span></label>
+          <div class="f"><label for="pnqpct">Default percent of excess income to defer</label><div class="inp pct"><input id="pnqpct" type="number" min="0" max="100" step="1" inputmode="decimal"></div></div>
+          <details class="adv" style="margin:0 0 12px"><summary>Election by year</summary>
+            <p class="explain" style="margin:8px 0 0">Each year starts with the default above. Change a year to make its own election; it is marked Custom. Changing the default election or percent resets every year to the new default.</p>
+            <div id="nqyears"></div>
+            <div class="btnrow" style="margin-top:8px"><button type="button" id="nqReset">Use the default for every year</button></div>
+          </details>
+          <div class="f"><label for="pnqn">Payout after retirement<small>equal yearly installments, starting the year after retiring; taxable when paid</small></label><div class="inp"><select id="pnqn"><option value="1">1 installment</option><option value="2">2 installments</option><option value="3">3 installments</option><option value="4">4 installments</option><option value="5">5 installments</option></select></div></div>
+          <div class="f"><label for="pnqbal">Current non-qualified balance ($)</label><div class="inp"><input id="pnqbal" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Growth</legend>
+          <div class="f"><label for="papr">Expected annual return<small>investment accounts</small></label><div class="inp pct"><input id="papr" type="number" min="-50" max="50" step="0.1" inputmode="decimal"></div></div>
+          <div class="f"><label for="pcbr">Cash balance plan return<small>yearly interest credit before rollover</small></label><div class="inp pct"><input id="pcbr" type="number" min="-50" max="50" step="0.1" inputmode="decimal"></div></div>
+          <div class="f"><label for="plr">Expected LUV annual return<small>Southwest Airlines stock</small></label><div class="inp pct"><input id="plr" type="number" min="-90" max="100" step="0.1" inputmode="decimal"></div></div>
+                    <div class="f"><label for="pinf">Expected inflation<small>also grows tax brackets and IRA limits after 2027</small></label><div class="inp pct"><input id="pinf" type="number" min="0" max="20" step="0.1" inputmode="decimal"></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>IRA contributions while working</legend>
+          <label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pirmax" checked><span>Maximize IRA<small>contribute the IRS limit each year, including the age 50+ catch-up</small></span></label>
+          <div class="f"><label for="pira">Yearly IRA contribution ($)<small>used when not maximizing; held to the IRS limit</small></label><div class="inp"><input id="pira" type="number" min="0" step="100" inputmode="decimal"></div></div>
+          <div class="f"><label for="piratype">Contribute to</label><div class="inp"><select id="piratype"><option value="trad">Traditional IRA</option><option value="roth">Roth IRA</option><option value="backdoor">Roth conversion (backdoor)</option></select></div></div>
+        </fieldset>
+        <fieldset>
+          <legend>Retirement</legend>
+          <div class="f"><label for="pssn">Social Security at full retirement age ($/month)<small>today’s dollars. Default is the 2026 maximum, $4,152; override with your ssa.gov estimate</small></label><div class="inp"><input id="pssn" type="text" inputmode="numeric"></div><button type="button" class="link" id="pssnReset" hidden>Use the default estimate ($4,152)</button></div>
+          <div class="f"><label for="pssage">Start Social Security at age<small>62 to 70; full retirement age is 67 if born 1960 or later</small></label><div class="inp"><input id="pssage" type="number" min="62" max="70" step="1" inputmode="numeric"></div></div>
+          <div class="f"><label for="pother">Other taxable retirement income ($/yr)<small>today’s dollars: pension, annuity, etc. (not Social Security)</small></label><div class="inp"><input id="pother" type="number" min="0" step="1000" inputmode="decimal"></div></div>
+          <div class="f"><label for="pend">Project through age</label><div class="inp"><input id="pend" type="number" min="60" max="120" step="1" inputmode="numeric"></div></div>
+        </fieldset>
+      </form>
+      <div id="projout" aria-live="polite"></div>
+    </div>
+  </details>
+</div>
+<div id="rptwrap" hidden role="dialog" aria-modal="true" aria-label="Calculator summary">
+  <div class="rptbar">
+    <button type="button" class="primary" id="rptPrint">Print or save as PDF</button>
+    <button type="button" class="primary" id="rptDl" hidden>Download summary (.html)</button>
+    <button type="button" id="rptDlCsv" hidden>Download history row (.csv)</button>
+    <button type="button" id="rptCopyAll">Copy history table with headers</button>
+    <button type="button" id="rptCopy">Copy history row only</button>
+    <button type="button" id="rptClose">Close</button>
+  </div>
+  <div class="rpt" id="rpt"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* Southwest pilot compensation engine. Pure functions, no DOM. */
+const FIRST_YEAR = 2024, LAST_CONTRACT_YEAR = 2028;
+
+// Dollars per TFP by year of service (1-12). Index 0..4 = 2024..2028.
+const CAPTAIN = {
+  1:[291.02,302.66,314.76,327.36,338.00], 2:[293.30,305.03,317.24,329.93,340.65], 3:[295.60,307.43,319.73,332.52,343.33],
+  4:[298.00,309.92,322.31,335.21,346.11], 5:[300.42,312.44,324.94,337.94,348.93], 6:[302.82,314.94,327.54,340.64,351.71],
+  7:[305.21,317.42,330.12,343.33,354.49], 8:[307.60,319.90,332.70,346.01,357.26], 9:[310.04,322.44,335.34,348.76,360.10],
+  10:[312.35,324.85,337.84,351.36,362.78], 11:[314.80,327.39,340.49,354.11,365.62], 12:[317.25,329.94,343.14,356.87,368.47]
+};
+const FIRST_OFFICER = {
+  1:[116.41,121.06,125.90,130.94,135.20], 2:[161.32,167.77,174.48,181.46,187.36], 3:[192.14,199.83,207.82,216.14,223.16],
+  4:[196.68,204.55,212.72,221.24,228.43], 5:[201.28,209.33,217.71,226.42,233.78], 6:[205.92,214.16,222.73,231.64,239.16],
+  7:[207.54,215.85,224.48,233.46,241.05], 8:[212.24,220.73,229.56,238.75,246.51], 9:[217.03,225.71,234.74,244.13,252.07],
+  10:[218.65,227.40,236.49,245.95,253.95], 11:[220.36,229.17,238.34,247.88,255.93], 12:[222.08,230.96,240.20,249.81,257.93]
+};
+
+// IRS limits: year, 402(g), 414(v) catch-up, 60-63 catch-up, 415(c), 401(a)(17). 2027 is the IRS announcement.
+const IRS_KNOWN = {
+  2024:[23000,7500,null,69000,345000],
+  2025:[23500,7500,11250,70000,350000],
+  2026:[24500,8000,11250,72000,360000],
+  2027:[25500,8500,11750,75000,375000],
+};
+const IRS_STEP = [500,500,250,1000,5000];
+const IRS_LAST_KNOWN = 2027;
+
+function irsLimits(year, growthPct) {
+  if (IRS_KNOWN[year]) {
+    const k = IRS_KNOWN[year];
+    return {year, deferral:k[0], catchup:k[1], superCatchup:k[2], additions:k[3], comp:k[4], projected:false};
+  }
+  const last = IRS_KNOWN[IRS_LAST_KNOWN], f = Math.pow(1 + growthPct/100, year - IRS_LAST_KNOWN);
+  const v = last.map((x,i) => Math.floor((x + IRS_STEP[i]/2) * f / IRS_STEP[i] + 1e-9) * IRS_STEP[i]);
+  return {year, deferral:v[0], catchup:v[1], superCatchup:v[2], additions:v[3], comp:v[4], projected:true};
+}
+
+function rateFor(seat, step, year, payGrowthPct) {
+  const tbl = seat === 'Captain' ? CAPTAIN : FIRST_OFFICER;
+  const i = Math.min(Math.max(year, FIRST_YEAR), LAST_CONTRACT_YEAR) - FIRST_YEAR;
+  let r = tbl[step][i];
+  if (year > LAST_CONTRACT_YEAR) r = Math.round(r * Math.pow(1 + payGrowthPct/100, year - LAST_CONTRACT_YEAR) * 100) / 100;
+  return r;
+}
+
+// Domestic per diem: $2.90 per hour in 2024, raised 2.5% each January 1 starting 2025, rounded to the cent.
+const PER_DIEM_BASE = 2.90, PER_DIEM_BASE_YEAR = 2024, PER_DIEM_GROWTH = 0.025;
+function perDiemRate(year) {
+  const n = Math.max(0, year - PER_DIEM_BASE_YEAR);
+  return Math.round(PER_DIEM_BASE * Math.pow(1 + PER_DIEM_GROWTH, n) * 100) / 100;
+}
+
+// Dates are UTC milliseconds at midnight. Completed years between two dates (anniversary based).
+function completedYears(fromMs, toMs) {
+  const a = new Date(fromMs), b = new Date(toMs);
+  let y = b.getUTCFullYear() - a.getUTCFullYear();
+  if (b.getUTCMonth() < a.getUTCMonth() || (b.getUTCMonth() === a.getUTCMonth() && b.getUTCDate() < a.getUTCDate())) y--;
+  return y;
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// Per-year values: inp.byYear = {year: {tfp, sti, lti}} (sti and lti as fractions); otherwise the defaults.
+const ovrOf = (inp, y, k) => inp.byYear && inp.byYear[y] && inp.byYear[y][k] != null ? inp.byYear[y][k] : null;
+const tfpOf = (inp, y) => { const v = ovrOf(inp, y, 'tfp'); return v != null ? v : inp.tfp; };
+const stiOf = (inp, y) => { const v = ovrOf(inp, y, 'sti'); return v != null ? v : (inp.stiPct || 0); };
+const ltiOf = (inp, y) => { const v = ovrOf(inp, y, 'lti'); return v != null ? v : (inp.ltiPct || 0); };
+
+function monthsFor(inp, year, as) {
+  const months = [];
+  let salary = 0, perDiem = 0;
+  const pdRate = perDiemRate(year);
+  const ret = inp.retire == null ? null : inp.retire;
+  for (let m = 0; m < 12; m++) {
+    const first = Date.UTC(year, m, 1);
+    const dim = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+    const last = Date.UTC(year, m, dim);
+    const blank = status => months.push({month:MONTHS[m], status, paid:false, seat:'', step:0, rate:0, tfp:0, pay:0, pdHours:0, pdPay:0, days:0, dim});
+    if (ret != null && first > ret) { blank('retired'); continue; }
+    if (inp.doh > first) { blank('notHired'); continue; }
+    const step = Math.min(12, completedYears(inp.doh, first) + 1);
+    const seat = (inp.upgrade != null && inp.upgrade <= first) ? 'Captain' : 'First Officer';
+    const rate = rateFor(seat, step, year, as.payGrowth);
+    const partial = ret != null && ret < last;
+    const days = partial ? new Date(ret).getUTCDate() : dim;
+    const tfpCounted = tfpOf(inp, year) * days / dim;
+    const pay = tfpCounted * rate;
+    salary += pay;
+    const pdHours = (inp.pdHours || 0) * days / dim, pdPay = pdHours * pdRate;
+    perDiem += pdPay;
+    months.push({month:MONTHS[m], status: partial ? 'partial' : 'paid', paid:true, seat, step, rate, tfp:tfpCounted, pay, pdHours, pdPay, days, dim});
+  }
+  return {months, salary, perDiem, pdRate};
+}
+
+function calc(inp, year, as) {
+  as = as || {irsGrowth:2.5, payGrowth:0};
+  const lim = irsLimits(year, as.irsGrowth);
+
+  // 1. Monthly pay: rate depends on service year and seat as of the 1st of each month.
+  const {months, salary, perDiem, pdRate} = monthsFor(inp, year, as);
+  // STI is paid on the previous year's total salary; LTI on this year's salary.
+  const prevSalary = monthsFor(inp, year - 1, as).salary;
+  const sti = prevSalary * stiOf(inp, year);
+  const lti = salary * ltiOf(inp, year);
+
+  // 2. Domestic per diem: hours per month x the year's per diem rate (prorated in a partial retirement month).
+  //    Per diem is not salary, so it does not count toward any 401k or cash balance plan amount.
+
+  // 3. Self 401(k): % of salary, up to the deferral limit plus the catch-up the pilot qualifies for.
+  const ageEnd = completedYears(inp.dob, Date.UTC(year, 11, 31));
+  let catchup = 0, catchupKind = 'none';
+  if (ageEnd >= 50) {
+    if (ageEnd >= 60 && ageEnd <= 63 && lim.superCatchup) { catchup = lim.superCatchup; catchupKind = '60-63'; }
+    else { catchup = lim.catchup; catchupKind = '50+'; }
+  }
+  const selfWanted = inp.selfPct * (salary + sti);
+  const selfCap = lim.deferral + catchup;
+  const self = Math.min(selfWanted, selfCap);
+  const selfRegular = Math.min(self, lim.deferral);
+  const selfCatchup = self - selfRegular;
+
+  // 4. Company 401(k): NEC first, then profit sharing, both on salary up to the compensation limit,
+  //    and both limited by the annual additions limit less the pilot's own regular deferral.
+  const compBase = Math.min(salary, lim.comp);
+  let room = Math.max(0, lim.additions - selfRegular);
+  const piece = pct => {
+    const total = pct * salary, eligible = pct * compBase;
+    const overComp = total - eligible;
+    const inPlan = Math.min(eligible, room);
+    const overLimit = eligible - inPlan;
+    room -= inPlan;
+    return {total, inPlan, overComp, overLimit};
+  };
+  const nec = piece(inp.necPct);
+  const ps = piece(inp.psPct);
+
+  // 5. Market Based Cash Balance Plan: credited up to the compensation limit, the rest is paid as income.
+  const mbTotal = inp.mbPct * salary;
+  const mb = inp.mbPct * compBase;
+  const mbOver = mbTotal - mb;
+
+  const excess = nec.overComp + nec.overLimit + ps.overComp + ps.overLimit + mbOver;
+  const total401k = self + nec.inPlan + ps.inPlan;
+  const totalComp = salary + sti + lti + perDiem + nec.inPlan + ps.inPlan + mb + excess;
+
+  return {
+    year, lim, months, salary, prevSalary, sti, lti, perDiem, pdRate,
+    ageEnd, catchup, catchupKind, selfWanted, selfCap, self, selfRegular, selfCatchup, selfCapped: selfWanted > selfCap + 1e-9,
+    nec, ps, mb, mbOver, mbTotal, excess, total401k, totalComp,
+    room, compBase,
+    // Self 401k % of salary that would just reach the limit (null when there is no pay)
+    selfMaxPctNeeded: (salary + sti) > 0 ? selfCap / (salary + sti) : null, selfPctUsed: inp.selfPct,
+    excessParts: {necOverComp:nec.overComp, necOverLimit:nec.overLimit, psOverComp:ps.overComp, psOverLimit:ps.overLimit, mbOverComp:mbOver},
+  };
+}
+/* ---------- Federal income tax (IRS figures; 2027 announced Nov 5, 2026) ---------- */
+// Bracket tops for 10%, 12%, 22%, 24%, 32%, 35%; 37% above the last.
+const TAX_RATES = [0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37];
+const TAX = {
+  2024:{std:{mfj:29200, single:14600}, ctc:2000, cg:{mfj:[94050,583750], single:[47025,518900]}, br:{mfj:[23200,94300,201050,383900,487450,731200], single:[11600,47150,100525,191950,243725,609350]}},
+  2025:{std:{mfj:31500, single:15750}, ctc:2200, cg:{mfj:[96700,600050], single:[48350,533400]}, br:{mfj:[23850,96950,206700,394600,501050,751600], single:[11925,48475,103350,197300,250525,626350]}},
+  2026:{std:{mfj:32200, single:16100}, ctc:2200, cg:{mfj:[98900,613700], single:[49450,545500]}, br:{mfj:[24800,100800,211400,403550,512450,768700], single:[12400,50400,105700,201775,256225,640600]}},
+  2027:{std:{mfj:33200, single:16600}, ctc:2300, cg:{mfj:[102100,633600], single:[51050,563200]}, br:{mfj:[25600,104050,218250,416650,529100,793650], single:[12800,52025,109125,208325,264550,661375]}},
+};
+const TAX_LAST_KNOWN = 2027;
+function taxTable(year, growthPct) {
+  if (TAX[year]) return {...TAX[year], projected:false};
+  const b = TAX[TAX_LAST_KNOWN], f = Math.pow(1 + growthPct/100, year - TAX_LAST_KNOWN);
+  const r50 = x => Math.round(x * f / 50) * 50;
+  return {std:{mfj:Math.floor(b.std.mfj * f / 50) * 50, single:Math.floor(b.std.single * f / 50) * 50},
+    ctc:Math.floor(b.ctc * f / 100) * 100, cg:{mfj:b.cg.mfj.map(r50), single:b.cg.single.map(r50)}, br:{mfj:b.br.mfj.map(r50), single:b.br.single.map(r50)}, projected:true};
+}
+function bracketTax(ti, tops) {
+  let tax = 0, lo = 0, idx = 0;
+  const rows = TAX_RATES.map((rate, i) => {
+    const hi = i < tops.length ? tops[i] : Infinity;
+    const amt = Math.max(0, Math.min(ti, hi) - lo);
+    if (ti > lo) idx = i;
+    const row = {rate, lo, hi, amt, tax: amt * rate};
+    tax += row.tax; lo = hi;
+    return row;
+  });
+  return {tax, rows, idx};
+}
+
+if (typeof module !== 'undefined') module.exports = {calc, irsLimits, rateFor, perDiemRate, completedYears, CAPTAIN, FIRST_OFFICER, taxTable, bracketTax};
+
+
+/* ---------- formatting ---------- */
+const money = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const money0 = n => '$' + Math.round(n).toLocaleString('en-US');
+const pctTxt = p => (+(p*100).toFixed(3)) + '%';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- date handling (mm/dd/yyyy) ---------- */
+function parseDate(s) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+  if (!m) return null;
+  const mo = +m[1], d = +m[2], y = +m[3];
+  const ms = Date.UTC(y, mo - 1, d), t = new Date(ms);
+  if (y < 1900 || y > 2100 || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return null;
+  return ms;
+}
+function maskDate(el) {
+  const digits = el.value.replace(/\D/g, '').slice(0, 8);
+  let out = digits.slice(0, 2);
+  if (digits.length > 2) out += '/' + digits.slice(2, 4);
+  if (digits.length > 4) out += '/' + digits.slice(4);
+  el.value = out;
+}
+
+/* ---------- example values (from the earlier workbook where known) ---------- */
+const DEFAULTS = {year:2026, dob:'01/01/1971', doh:'01/01/2004', upg:'01/01/2014', tfp:'125', pd:'250', sti:'5', lti:'0', self:'10', nec:'18', ps:'0', mb:'2', irsg:'2.5', payg:'0'};
+const IDS = ['dob','doh','upg','ret','tfp','pd','sti','lti','self','nec','ps','mb','irsg','payg'];
+const DATE_IDS = ['dob','doh','upg','ret'];
+const $ = id => document.getElementById(id);
+const yearSel = $('year');
+
+let YEAR_OVR = {}, YR_KEY = '';   // TFP / STI / LTI changed for single years
+let retEdited = false;   // true once the pilot types their own retirement date
+let applyMax = false;    // use the "needed" self 401k % in the final year
+
+const fmtDate = ms => { const d = new Date(ms); return String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + String(d.getUTCDate()).padStart(2, '0') + '/' + d.getUTCFullYear(); };
+// The day before the 65th birthday.
+function dayBefore65(dobMs) {
+  const d = new Date(dobMs);
+  return Date.UTC(d.getUTCFullYear() + 65, d.getUTCMonth(), d.getUTCDate()) - 864e5;
+}
+function birthday65(dobMs) { const d = new Date(dobMs); return Date.UTC(d.getUTCFullYear() + 65, d.getUTCMonth(), d.getUTCDate()); }
+function syncRetDefault() {
+  if (retEdited) return;
+  const dob = parseDate($('dob').value);
+  if (dob != null) $('ret').value = fmtDate(dayBefore65(dob));
+  $('retReset').hidden = true;
+}
+
+function setAll(v) {
+  IDS.forEach(id => { if (v[id] != null) $(id).value = v[id]; });
+  retEdited = false; applyMax = false; YEAR_OVR = {};
+  syncRetDefault();
+}
+
+/* ---------- reading inputs with validation ---------- */
+function showErr(id, msg) {
+  const e = $(id + '_e'), i = $(id);
+  if (!e) return;
+  e.hidden = !msg; e.textContent = msg || '';
+  i.setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+function readInputs() {
+  let ok = true;
+  const dateField = (id, required) => {
+    const s = $(id).value.trim();
+    if (!s) { showErr(id, required ? 'Enter a date as mm/dd/yyyy.' : ''); if (required) ok = false; return null; }
+    const ms = parseDate(s);
+    if (ms == null) { showErr(id, 'Use a real date as mm/dd/yyyy.'); ok = false; return null; }
+    showErr(id, ''); return ms;
+  };
+  const numField = (id, lo, hi, pct) => {
+    const raw = $(id).value.trim(), n = parseFloat(raw);
+    if (raw === '' || isNaN(n) || n < lo || n > hi) { showErr(id, `Enter a number from ${lo} to ${hi}.`); ok = false; return null; }
+    showErr(id, ''); return pct ? n / 100 : n;
+  };
+  const inp = {
+    dob: dateField('dob', true), doh: dateField('doh', true), upgrade: dateField('upg', false), retire: dateField('ret', true),
+    tfp: numField('tfp', 0, 300, false), byYear: YEAR_OVR,
+    pdHours: numField('pd', 0, 744, false),
+    stiPct: numField('sti', 0, 100, true), ltiPct: numField('lti', 0, 100, true),
+    selfPct: numField('self', 0, 100, true), necPct: numField('nec', 0, 100, true),
+    psPct: numField('ps', 0, 100, true), mbPct: numField('mb', 0, 100, true),
+  };
+  if (inp.retire != null && inp.doh != null) {
+    if (inp.retire <= inp.doh) { showErr('ret', 'The retirement date must be after the date of hire.'); ok = false; }
+    else if (new Date(inp.retire).getUTCFullYear() < 2024) { showErr('ret', 'Pay rates start in 2024. Use a retirement date in 2024 or later.'); ok = false; }
+  }
+  const irsg = parseFloat($('irsg').value), payg = parseFloat($('payg').value);
+  const as = {irsGrowth: isNaN(irsg) ? 2.5 : Math.min(10, Math.max(0, irsg)), payGrowth: isNaN(payg) ? 0 : Math.min(10, Math.max(0, payg))};
+  return {ok, inp, as};
+}
+
+/* ---------- results for a year (the final year can use the "needed" self 401k %) ---------- */
+function yearResult(inp, y, as, finalYear) {
+  let r = calc(inp, y, as);
+  if (applyMax && y === finalYear && r.selfMaxPctNeeded != null) {
+    r = calc({...inp, selfPct: Math.min(1, r.selfMaxPctNeeded)}, y, as);
+  }
+  return r;
+}
+
+/* ---------- TFP, STI and LTI by year ---------- */
+function syncYearRows(firstYear, finalYear) {
+  const box = $('yrrows'), key = firstYear + '-' + finalYear;
+  if (key !== YR_KEY) {
+    YR_KEY = key;
+    let h = '<div class="yrow h"><span>Year</span><span>TFP</span><span>STI %</span><span>LTI %</span></div>';
+    for (let y = firstYear; y <= finalYear; y++) h += `<div class="yrow" data-y="${y}"><b>${y}</b><input data-k="tfp" type="number" min="0" max="300" step="0.5" inputmode="decimal" aria-label="Average TFP per month in ${y}"><span class="nqp"><input data-k="sti" type="number" min="0" max="100" step="0.1" inputmode="decimal" aria-label="STI percent in ${y}"></span><span class="nqp"><input data-k="lti" type="number" min="0" max="100" step="0.1" inputmode="decimal" aria-label="LTI percent in ${y}"></span></div>`;
+    box.innerHTML = h;
+  }
+  const d = {tfp: parseFloat($('tfp').value), sti: parseFloat($('sti').value), lti: parseFloat($('lti').value)};
+  Array.from(box.querySelectorAll('.yrow[data-y]')).forEach(rw => {
+    const y = +rw.dataset.y, o = YEAR_OVR[y] || {};
+    ['tfp', 'sti', 'lti'].forEach(k => {
+      const el = rw.querySelector(`[data-k="${k}"]`);
+      const v = o[k] != null ? (k === 'tfp' ? o[k] : o[k] * 100) : null;
+      if (document.activeElement !== el) el.value = v != null ? +v.toFixed(2) : (isNaN(d[k]) ? '' : d[k]);
+      el.classList.toggle('ovr', v != null);
+    });
+    rw.classList.toggle('custom', !!YEAR_OVR[y]);
+  });
+}
+function yrEdit(e) {
+  const t = e.target, rw = t.closest ? t.closest('.yrow') : null;
+  if (!rw || !t.dataset || !t.dataset.k || !rw.dataset.y) return;
+  const y = +rw.dataset.y, k = t.dataset.k, n = parseFloat(t.value), o = YEAR_OVR[y] || {};
+  if (isNaN(n)) delete o[k];
+  else o[k] = k === 'tfp' ? Math.min(300, Math.max(0, n)) : Math.min(100, Math.max(0, n)) / 100;
+  if (Object.keys(o).length) YEAR_OVR[y] = o; else delete YEAR_OVR[y];
+  render();
+}
+
+/* ---------- rendering ---------- */
+const COLORS = {salary:'var(--c-salary)', sti:'var(--c-sti)', lti:'var(--c-lti)', pd:'var(--c-pd)', k401:'var(--c-401k)', mb:'var(--c-mb)', excess:'var(--c-excess)'};
+
+function row(label, value, why, cls, color) {
+  return `<div class="row ${cls || ''}"><span class="l">${color ? `<i class="dot" style="background:${color}"></i>` : ''}${label}</span><span class="v">${value}</span>${why ? `<span class="why">${why}</span>` : ''}</div>`;
+}
+const ceilPct = f => (Math.ceil(f * 10000 - 1e-9) / 100).toFixed(2) + '%';
+
+function render() {
+  const {ok, inp, as} = readInputs();
+  const out = $('out');
+  if (!ok) {
+    out.innerHTML = '<div class="note err">Fix the highlighted inputs to see results.</div>';
+    $('taxout').innerHTML = '<div class="note err">Fix the highlighted inputs above to see the tax estimate.</div>';
+    $('taxsum').textContent = '';
+    $('projout').innerHTML = '<div class="note err">Fix the highlighted inputs above to see the projection.</div>';
+    $('projsum').textContent = '';
+    LAST = null;
+    return;
+  }
+  const retYear = new Date(inp.retire).getUTCFullYear();
+  const firstYear = Math.max(2024, new Date(inp.doh).getUTCFullYear());
+  // The final year of salary is the last year up to retirement with any pay.
+  let finalYear = retYear;
+  while (finalYear > firstYear && calc(inp, finalYear, as).salary <= 0) finalYear--;
+
+  // Year selector covers hire (or 2024) through the final year, nothing later.
+  const wanted = +yearSel.value || DEFAULTS.year;
+  const year = Math.min(Math.max(wanted, firstYear), finalYear);
+  if (yearSel.options.length !== finalYear - firstYear + 1 || +yearSel.options[0].value !== firstYear) {
+    yearSel.innerHTML = '';
+    for (let y = firstYear; y <= finalYear; y++) yearSel.add(new Option(y, y));
+  }
+  yearSel.value = year;
+  syncYearRows(firstYear, finalYear);
+
+  const r = yearResult(inp, year, as, finalYear);
+  const fin = yearResult(inp, finalYear, as, finalYear);
+  const finBase = calc(inp, finalYear, as);      // without the "needed %" override, for the plain numbers
+  const retTxt = fmtDate(inp.retire);
+  const isFinal = year === finalYear;
+
+  const notes = [];
+  if (!r.months.some(m => m.paid)) notes.push(['warn', 'No pay is counted in ' + year + ': the date of hire is after the start of every month.']);
+  if (completedYears(inp.dob, inp.doh) < 18) notes.push(['warn', 'The date of hire is before age 18. Check the dates of birth and hire.']);
+  if (inp.upgrade != null && inp.upgrade < inp.doh) notes.push(['warn', 'The captain upgrade date is before the date of hire, so captain rates apply from the first month.']);
+  if (inp.retire >= birthday65(inp.dob)) notes.push(['warn', 'The retirement date is on or after the 65th birthday. FAA rules require airline pilots to retire at 65.']);
+  if (isFinal) notes.push(['info', `${year} is the final year. Pay is counted through the retirement date, ${retTxt}, and nothing after it.`]);
+  if (r.lim.projected) notes.push(['info', `IRS limits for ${year} are estimates, grown ${as.irsGrowth}% a year from the 2027 announcement.`]);
+  if (year > 2028) notes.push(['info', `The SWAPA pay rates end in 2028. Rates for ${year} are the 2028 rates${as.payGrowth ? ' grown ' + as.payGrowth + '% a year' : ' held flat'}.`]);
+
+  const co401 = r.nec.inPlan + r.ps.inPlan;
+  const parts = [
+    ['Salary', r.salary, COLORS.salary], ['STI', r.sti, COLORS.sti], ['LTI', r.lti, COLORS.lti], ['Domestic per diem', r.perDiem, COLORS.pd],
+    ['Company 401k', co401, COLORS.k401], ['Cash balance plan', r.mb, COLORS.mb], ['Excess income', r.excess, COLORS.excess],
+  ];
+  const tot = r.totalComp || 1;
+  const bar = parts.map(([n, v, c]) => `<span style="width:${(Math.max(0, v) / tot * 100).toFixed(3)}%;background:${c}" title="${n} ${money(v)}"></span>`).join('');
+  const legend = parts.map(([n, v, c]) => `<span><i style="background:${c}"></i>${n} ${r.totalComp ? (v / tot * 100).toFixed(1) + '%' : '0%'}</span>`).join('');
+
+  const cuTxt = k => k === 'none' ? 'no catch-up (under 50 at year end)' : (k === '60-63' ? 'age 60–63 catch-up' : 'age 50+ catch-up');
+  const exp = r.excessParts;
+  const exLine = (label, v) => row(label, money(v), '', 'sub');
+
+  let h = '';
+  h += `<section class="hero"><div class="k">Total compensation, ${year}${isFinal ? ' (through ' + retTxt + ')' : ''}</div><div class="big">${money(r.totalComp)}</div>
+    <div class="eq">Salary + STI + LTI + domestic per diem + company 401k + cash balance plan + excess income. Your own 401k deferral comes out of salary and STI, so it is not added a second time.</div>
+    <div class="bar" role="img" aria-label="Share of total compensation by type">${bar}</div><div class="legend">${legend}</div></section>`;
+  if (notes.length) h += '<div class="notes">' + notes.map(([k, t]) => `<div class="note ${k}">${esc(t)}</div>`).join('') + '</div>';
+
+  /* ----- final year card ----- */
+  const need = finBase.selfMaxPctNeeded;
+  const payBase = finBase.salary + finBase.sti;
+  let needBlock;
+  if (need == null) {
+    needBlock = `<div class="n">n/a</div><p>There is no salary in ${finalYear}, so there is nothing to contribute from.</p>`;
+  } else if (need > 1) {
+    needBlock = `<div class="n">Over 100%</div><p>Even 100% of ${money(payBase)} (salary and STI through ${retTxt}) is below the ${money0(finBase.selfCap)} maximum, so the limit cannot be reached. It would take ${ceilPct(need)}.</p>`;
+  } else {
+    needBlock = `<div class="n">${ceilPct(need)}</div><p>of salary + STI reaches the ${money0(finBase.selfCap)} maximum for ${finalYear}: ${money0(finBase.lim.deferral)} limit plus ${money0(finBase.catchup)} ${cuTxt(finBase.catchupKind)}. That is ${money(payBase)} of salary and STI through ${retTxt}.</p>`;
+  }
+  const entered = `<p>You entered ${pctTxt(inp.selfPct)}, which contributes ${money(finBase.self)}${finBase.self < finBase.selfCap - 0.005 ? ', ' + money(finBase.selfCap - finBase.self) + ' short of the maximum' : ', the maximum'}.</p>`;
+  const mini = [
+    ['Total Salary', fin.salary], ['Total STI', fin.sti], ['Total LTI', fin.lti], ['Monthly Domestic Per Diem', fin.perDiem], ['Excess Income', fin.excess],
+    ['Self 401k', fin.self], ['Company 401k (NEC)', fin.nec.inPlan],
+  ];
+  if (inp.psPct > 0 || fin.ps.inPlan > 0) mini.push(['Profit sharing (company 401k)', fin.ps.inPlan]);
+  mini.push(['Total 401k Contributions', fin.total401k], ['MBCP Contributions', fin.mb]);
+  const miniHtml = mini.map(([l, v]) => row(l, money(v), '', '')).join('') + row('Total compensation', money(fin.totalComp), '', 'tot');
+  let finalCard = '';
+  finalCard += `<section class="card wide"><div class="hd"><h3>Final year of salary: ${finalYear}</h3><span class="tag set">Retires ${retTxt}</span></div>
+    <div class="finalgrid"><div class="need"><div class="k">Self 401k % needed to maximize</div>${needBlock}${entered}
+      <label class="chk"><input type="checkbox" id="applyMax" ${applyMax ? 'checked' : ''} ${need == null ? 'disabled' : ''}><span>Use this percentage for ${finalYear} in the results and table</span></label></div>
+      <div><div class="explain" style="margin-bottom:4px">Income through the retirement date${applyMax && need != null ? ', with the needed self 401k %' : ', using your self 401k %'}:</div>${miniHtml}
+      ${isFinal ? '' : `<div class="btnrow"><button type="button" id="showFinal">Show ${finalYear} in detail</button></div>`}</div></div></section>`;
+
+  h += '<div class="cards">';
+  h += `<section class="card"><h3>Pay</h3>
+    ${row('Total Salary', money(r.salary), isFinal ? `Each month: average TFP × the rate for that month’s seat and service year. The last month is paid for the days up to ${retTxt}.` : 'Each month: average TFP × the rate for that month’s seat and service year, added up for the year.', '', COLORS.salary)}
+    ${row('Total STI', money(r.sti), `${pctTxt(stiOf(inp, year))} of ${year - 1} total salary (${money(r.prevSalary)}).`, '', COLORS.sti)}
+    ${row('Total LTI', money(r.lti), `${pctTxt(ltiOf(inp, year))} of ${year} total salary, granted as LUV shares that vest in ${year + 3}.`, '', COLORS.lti)}
+    ${row('Monthly Domestic Per Diem', money(r.perDiem), `${+(inp.pdHours).toFixed(2)} hours a month × $${r.pdRate.toFixed(2)} per hour (the ${year} rate), added up for the months worked.${isFinal ? ' The last month counts only the days up to ' + retTxt + '.' : ''}`, '', COLORS.pd)}</section>`;
+
+  const selfPctShown = (isFinal && applyMax && r.selfMaxPctNeeded != null) ? Math.min(1, r.selfMaxPctNeeded) : inp.selfPct;
+  const cuLine = r.catchupKind === 'none' ? 'no catch-up' : `${money0(r.catchup)} ${cuTxt(r.catchupKind)}`;
+  h += `<section class="card"><h3>401k contributions</h3>
+    ${row('Self 401k', money(r.self), `${pctTxt(+selfPctShown.toFixed(6))} of salary + STI is ${money(r.selfWanted)}. The limit is ${money0(r.lim.deferral)} plus ${cuLine}, ${money0(r.selfCap)} in all.${r.selfCapped ? ' Contribution is held at the limit.' : ''}`)}
+    ${row('Company 401k (NEC)', money(r.nec.inPlan), `${pctTxt(inp.necPct)} of salary up to the ${money0(r.lim.comp)} compensation limit, and no more than the ${money0(r.lim.additions)} annual additions limit less your ${money0(r.selfRegular)} deferral.`)}
+    ${row('Profit sharing (company 401k)', money(r.ps.inPlan), `${pctTxt(inp.psPct)} of salary, under the same two limits. It is added after the NEC.`)}
+    ${row('Total 401k Contributions', money(r.total401k), 'Self 401k + company NEC + profit sharing.', 'tot', COLORS.k401)}</section>`;
+
+  h += `<section class="card"><h3>Cash balance plan</h3>
+    ${row('MBCP Contributions', money(r.mb), `${pctTxt(inp.mbPct)} of salary up to the ${money0(r.lim.comp)} compensation limit. The part above the limit is paid as income.`, '', COLORS.mb)}</section>`;
+
+  h += `<section class="card"><h3>Excess income</h3>
+    ${row('Excess Income', money(r.excess), 'Company contributions that cannot go into a plan are paid as income.', '', COLORS.excess)}
+    ${exLine('NEC above the compensation limit', exp.necOverComp)}
+    ${exLine('NEC above the 401k limit', exp.necOverLimit)}
+    ${exLine('Profit sharing above the compensation limit', exp.psOverComp)}
+    ${exLine('Profit sharing above the 401k limit', exp.psOverLimit)}
+    ${exLine('Cash balance plan above the compensation limit', exp.mbOverComp)}</section>`;
+
+  h += `<section class="card wide"><div class="hd"><h3>IRS limits used for ${year}</h3><span class="tag ${r.lim.projected ? 'est' : 'set'}">${r.lim.projected ? 'Estimate' : (year === 2027 ? 'Announced' : 'Actual')}</span></div>
+    <div class="lims">
+      <div><span>402(g) 401k deferral</span><b>${money0(r.lim.deferral)}</b></div>
+      <div><span>Age 50+ catch-up</span><b>${money0(r.lim.catchup)}</b></div>
+      <div><span>Age 60–63 catch-up</span><b>${r.lim.superCatchup ? money0(r.lim.superCatchup) : 'not in effect'}</b></div>
+      <div><span>415(c) annual additions</span><b>${money0(r.lim.additions)}</b></div>
+      <div><span>401(a)(17) compensation</span><b>${money0(r.lim.comp)}</b></div>
+      <div><span>Age at end of ${year}</span><b>${r.ageEnd}</b></div>
+    </div></section>`;
+
+  /* ----- year-by-year, first year through the final year only ----- */
+  const rows = [];
+  for (let y = firstYear; y <= finalYear; y++) rows.push(yearResult(inp, y, as, finalYear));
+  const basis = y => y <= 2027 ? '' : (y === 2028 ? '<span class="tag est">Est. limits</span>' : '<span class="tag est">Est.</span>');
+  const needTxt = x => x.selfMaxPctNeeded == null ? '—' : (x.selfMaxPctNeeded > 1 ? '>100%' : ceilPct(x.selfMaxPctNeeded));
+  const body = rows.map(x => `<tr class="click ${x.year === year ? 'pick' : ''}" data-y="${x.year}" tabindex="0" aria-label="Show ${x.year}">
+      <td><b>${x.year}</b>${x.year === finalYear ? '<span class="tag set">Final year</span>' : basis(x.year)}</td><td>${x.ageEnd}</td><td>${money0(x.salary)}</td><td>${money0(x.sti)}</td><td>${money0(x.lti)}</td><td>${money0(x.perDiem)}</td>
+      <td>${money0(x.self)}</td><td>${money0(x.nec.inPlan)}</td><td>${money0(x.ps.inPlan)}</td><td>${money0(x.total401k)}</td><td>${money0(x.mb)}</td><td>${money0(x.excess)}</td><td class="big">${money0(x.totalComp)}</td><td>${needTxt(x)}</td></tr>`).join('');
+  const curYear = Math.max(new Date().getFullYear(), firstYear);
+  const tr = rows.filter(x => x.year >= curYear);
+  const sum = f => tr.reduce((t, x) => t + f(x), 0);
+  const foot = tr.length ? `<tfoot><tr><td>Total ${curYear}–${finalYear}</td><td></td><td>${money0(sum(x => x.salary))}</td><td>${money0(sum(x => x.sti))}</td><td>${money0(sum(x => x.lti))}</td><td>${money0(sum(x => x.perDiem))}</td><td>${money0(sum(x => x.self))}</td><td>${money0(sum(x => x.nec.inPlan))}</td><td>${money0(sum(x => x.ps.inPlan))}</td><td>${money0(sum(x => x.total401k))}</td><td>${money0(sum(x => x.mb))}</td><td>${money0(sum(x => x.excess))}</td><td class="big">${money0(sum(x => x.totalComp))}</td><td></td></tr></tfoot>` : '';
+  h += `<section class="card wide"><div class="hd"><h3>Every year through retirement, ${firstYear}–${finalYear}</h3><button type="button" id="copy">Copy table</button></div>
+    <div class="scroll"><table><thead><tr><th>Year</th><th>Age at year end</th><th>Total Salary</th><th>Total STI</th><th>Total LTI</th><th>Monthly Domestic Per Diem</th><th>Self 401k</th><th>Company 401k (NEC)</th><th>Profit sharing</th><th>Total 401k</th><th>MBCP</th><th>Excess income</th><th>Total compensation</th><th>Self 401k % needed for the maximum</th></tr></thead><tbody>${body}</tbody>${foot}</table></div>
+    <p class="explain" style="margin:8px 0 0">The total row adds up each column from ${curYear} (the current year) through the final year. The calculator stops at the retirement date, so no later years are shown. Click a year to see it in detail. Dollars are rounded in this table. “Est.” marks years that use estimated IRS limits or pay rates.</p></section>`;
+
+  /* ----- monthly detail ----- */
+  const mrows = r.months.map(m => {
+    if (m.status === 'notHired') return `<tr><td>${m.month}</td><td colspan="5" style="text-align:left;color:var(--muted)">Not yet hired, no pay</td><td>${money(0)}</td><td>0</td><td>${money(0)}</td></tr>`;
+    if (m.status === 'retired') return `<tr><td>${m.month}</td><td colspan="5" style="text-align:left;color:var(--muted)">After the retirement date, no pay</td><td>${money(0)}</td><td>0</td><td>${money(0)}</td></tr>`;
+    const paidFor = m.status === 'partial' ? `${m.days} of ${m.dim} days` : 'Full month';
+    return `<tr><td>${m.month}</td><td>${m.seat}</td><td>${m.step}</td><td>${money(m.rate)}</td><td>${+m.tfp.toFixed(2)}</td><td>${paidFor}</td><td>${money(m.pay)}</td><td>${+m.pdHours.toFixed(2)}</td><td>${money(m.pdPay)}</td></tr>`;
+  }).join('');
+  h += `<section class="card wide"><div class="hd"><h3>Monthly pay and per diem in ${year}</h3></div>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Seat</th><th>Service year</th><th>Rate per TFP</th><th>TFP counted</th><th>Paid for</th><th>Pay</th><th>Per diem hours</th><th>Per diem ($${r.pdRate.toFixed(2)}/hr)</th></tr></thead><tbody>${mrows}</tbody>
+    <tfoot><tr><td colspan="6">Totals</td><td>${money(r.salary)}</td><td></td><td>${money(r.perDiem)}</td></tr></tfoot></table></div></section>`;
+
+  h += `<section class="card wide"><h3>How it is worked out</h3><div class="explain">
+    <ol>
+      <li><b>Pay rate:</b> each month uses the pilot’s service year from the date of hire (year 1 through 12, then the top rate). Before the captain upgrade date the First Officer rate applies, after it the Captain rate. Each month is judged as of its first day and paid at that rate for the whole month.</li>
+      <li><b>Monthly pay and salary:</b> average TFP × the month’s rate. Salary is the twelve months added up.</li>
+      <li><b>Retirement:</b> pay stops on the retirement date. If it falls inside a month, that month counts only the days up to the date (for example 19 of 31 days). Nothing is calculated for later years.</li>
+      <li><b>STI:</b> a percent of the <i>previous</i> year’s total salary. A pilot hired during the year gets no STI that year. For 2024 the 2023 salary is estimated with the 2024 pay rates.</li>
+      <li><b>LTI:</b> a percent of this year’s total salary.</li>
+      <li><b>Domestic per diem:</b> hours of domestic per diem per month × the hourly rate for the year, added up over the months worked. The rate is $2.90 in 2024 and rises 2.5% every January 1 starting in 2025, rounded to the cent ($${perDiemRate(year).toFixed(2)} in ${year}). In a partial retirement month the hours count only for the days up to the retirement date. Per diem is not salary, so it does not change any 401k or cash balance plan amount.</li>
+      <li><b>Self 401k:</b> a percent of salary + STI, up to the IRS deferral limit plus the catch-up for the pilot’s age at year end (50 and over, or the higher amount for ages 60 to 63).</li>
+      <li><b>Self 401k % needed to maximize:</b> the limit plus catch-up, divided by the year’s salary + STI. In the final year that is on pay through the retirement date only.</li>
+      <li><b>Company 401k (NEC) and profit sharing:</b> a percent of salary up to the compensation limit. Contributions over the compensation limit, or over the annual additions limit less the pilot’s own deferral, are paid as excess income. NEC is filled first, then profit sharing.</li>
+      <li><b>Cash balance plan (MBCBP):</b> a percent of salary up to the compensation limit. The percent on salary above the limit is paid as excess income.</li>
+      <li><b>Total compensation:</b> salary + STI + LTI + domestic per diem + company 401k + cash balance plan + excess income.</li>
+    </ol>
+    <p>Your rules do not say how profit sharing is treated, so it is handled like the NEC as a company 401k contribution. The IRS limits for a final partial year are the full-year limits. Pay rates come from the pay-rate table and IRS limits from the limits table built earlier.</p>
+  </div></section>`;
+  h += finalCard;
+  h += '</div>';
+  out.innerHTML = h;
+
+  out.querySelectorAll('tr.click').forEach(tr => {
+    const pick = () => { yearSel.value = tr.dataset.y; render(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+    tr.addEventListener('click', pick);
+    tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  });
+  $('copy').addEventListener('click', () => copyTable(rows));
+  const am = $('applyMax'); if (am) am.addEventListener('change', () => { applyMax = am.checked; render(); });
+  const sf = $('showFinal'); if (sf) sf.addEventListener('click', () => { yearSel.value = finalYear; render(); window.scrollTo({top: 0, behavior: 'smooth'}); });
+  LAST = {inp, as, year, r, rows, finalYear, firstYear, retTxt};
+  const proj = renderProj(rows, inp, finalYear, as);
+  LAST.proj = proj;
+  renderTax(r, year, inp, as, finalYear, proj, firstYear);
+}
+
+/* ---------- retirement accounts: balances, IRA contributions and RMDs ---------- */
+// IRA limit, age 50+ catch-up, Roth IRA income phase-out, traditional IRA deduction phase-out (covered by a workplace plan).
+const IRA_KNOWN = {
+  2024:{lim:7000, cu:1000, roth:{mfj:[230000,240000], single:[146000,161000]}, ded:{mfj:[123000,143000], single:[77000,87000]}},
+  2025:{lim:7000, cu:1000, roth:{mfj:[236000,246000], single:[150000,165000]}, ded:{mfj:[126000,146000], single:[79000,89000]}},
+  2026:{lim:7500, cu:1100, roth:{mfj:[242000,252000], single:[153000,168000]}, ded:{mfj:[129000,149000], single:[81000,91000]}},
+  2027:{lim:7500, cu:1100, roth:{mfj:[250000,260000], single:[158000,173000]}, ded:{mfj:[133000,153000], single:[83000,93000]}},
+};
+function iraLimits(year, g) {
+  if (IRA_KNOWN[year]) return IRA_KNOWN[year];
+  const b = IRA_KNOWN[2027], f = Math.pow(1 + g/100, Math.max(0, year - 2027));
+  const r1k = x => Math.floor(x * f / 1000) * 1000;
+  return {lim:Math.floor(b.lim * f / 500) * 500, cu:Math.floor(b.cu * f / 100) * 100,
+    roth:{mfj:b.roth.mfj.map(r1k), single:b.roth.single.map(r1k)}, ded:{mfj:b.ded.mfj.map(r1k), single:b.ded.single.map(r1k)}};
+}
+// IRS Uniform Lifetime Table (2022 and later), ages 72 to 120.
+const ULT = [27.4,26.5,25.5,24.6,23.7,22.9,22.0,21.1,20.2,19.4,18.5,17.7,16.8,16.0,15.2,14.4,13.7,12.9,12.2,11.5,10.8,10.1,9.5,8.9,8.4,7.8,7.3,6.8,6.4,6.0,5.6,5.2,4.9,4.6,4.3,4.1,3.9,3.7,3.5,3.4,3.3,3.1,3.0,2.9,2.8,2.7,2.5,2.3,2.0];
+const ultDivisor = age => ULT[Math.min(Math.max(age, 72), 120) - 72];
+const rmdStartAge = by => by >= 1960 ? 75 : (by >= 1951 ? 73 : 72);
+
+const PROJ_DEFAULTS = {pstart:String(new Date().getFullYear()), pt401:'0', pr401:'0', pluv:'0', pluvbas:'0', plr:'7', pnqpct:'100', pnqn:'5', pnqbal:'0', pssn:'4152', pssage:'67', pcb:'0', pcbr:'7', ptira:'0', pbasis:'0', prira:'0', papr:'7', pinf:'3', pira:'7500', piratype:'backdoor', pother:'0', pend:'95'};
+const PROJ_IDS = Object.keys(PROJ_DEFAULTS);
+
+// Social Security: default monthly benefit at full retirement age (2026 maximum), claim-age adjustment, and the taxable part.
+const SS_DEFAULT = 4152;
+function fraMonths(by) { return by >= 1960 ? 804 : (by >= 1955 ? 792 + 2 * (by - 1954) : (by >= 1943 ? 792 : 780)); }
+function ssClaimFactor(claimAge, by) {
+  const fra = fraMonths(by), m = Math.round(claimAge * 12) - fra;
+  if (m < 0) { const e = -m; return 1 - (Math.min(36, e) * 5 / 900 + Math.max(0, e - 36) * 5 / 1200); }
+  return 1 + Math.min(m, 840 - fra) * (2 / 3) / 100;
+}
+function ssTaxable(ss, otherInc, fs) {
+  if (ss <= 0) return 0;
+  const [t1, t2] = fs === 'mfj' ? [32000, 44000] : [25000, 34000];
+  const pi = Math.max(0, otherInc) + 0.5 * ss;
+  if (pi <= t1) return 0;
+  if (pi <= t2) return Math.min(0.5 * ss, 0.5 * (pi - t1));
+  return Math.min(0.85 * ss, 0.85 * (pi - t2) + Math.min(0.5 * ss, 0.5 * (t2 - t1)));
+}
+
+// Non-qualified deferral elections: a default plus optional per-year elections {year: {on, pct}}.
+let NQ_OVR = {}, NQ_KEY = '';
+function nqFor(y) {
+  const o = NQ_OVR[y];
+  const on = o ? o.on : $('pnqon').checked;
+  const pct = o ? o.pct : numVal('pnqpct', 0, 100) / 100;
+  return on ? pct : 0;
+}
+function syncNqYears(finalYear) {
+  const box = $('nqyears'), y0 = new Date().getFullYear(), key = y0 + '-' + finalYear;
+  if (key !== NQ_KEY) {
+    NQ_KEY = key;
+    let h = '';
+    for (let y = y0; y <= finalYear; y++) h += `<div class="nqrow" data-y="${y}"><b>${y}</b><label class="chk"><input type="checkbox" data-k="on"><span>Defer</span></label><span class="nqp"><input type="number" data-k="pct" min="0" max="100" step="1" inputmode="decimal" aria-label="Percent of excess income deferred in ${y}"></span><span class="tag est" data-k="tag">Custom</span></div>`;
+    box.innerHTML = h || '<p class="explain">No working years left to set.</p>';
+  }
+  const defOn = $('pnqon').checked, defPct = numVal('pnqpct', 0, 100);
+  Array.from(box.querySelectorAll('.nqrow')).forEach(rw => {
+    const y = +rw.dataset.y, o = NQ_OVR[y];
+    const cb = rw.querySelector('[data-k="on"]'), p = rw.querySelector('[data-k="pct"]'), tg = rw.querySelector('[data-k="tag"]');
+    const on = o ? o.on : defOn, pct = o ? o.pct * 100 : defPct;
+    if (document.activeElement !== cb) cb.checked = on;
+    if (document.activeElement !== p) p.value = +pct.toFixed(2);
+    p.disabled = !on;
+    tg.hidden = !o;
+  });
+}
+
+// LTI is granted as LUV shares and vests 3 years later. At vesting its value is taxable income and becomes the cost basis.
+const LTI_VEST_YEARS = 3;
+function ltiGrant(inp, as, finalYear, g) { return g > finalYear ? 0 : calc(inp, g, as).lti; }
+function luvReturn() { return numVal('plr', -90, 100) / 100; }
+function ltiVestValue(inp, as, finalYear, y) {
+  return ltiGrant(inp, as, finalYear, y - LTI_VEST_YEARS) * Math.pow(1 + luvReturn(), LTI_VEST_YEARS);
+}
+
+function renderProj(rows, inp, finalYear, as) {
+  syncNqYears(finalYear);
+  const fs = $('tfs').value === 'single' ? 'single' : 'mfj';
+  const apr = numVal('papr', -50, 50) / 100, infl = numVal('pinf', 0, 20), inflR = infl / 100;
+  const birthYear = new Date(inp.dob).getUTCFullYear();
+  const endAge = Math.round(numVal('pend', 60, 120)), endYear = birthYear + endAge;
+  const firstRowYear = rows.length ? rows[0].year : finalYear;
+  const start = Math.max(Math.round(numVal('pstart', 1900, 2200)), firstRowYear);
+  const iraMax = $('pirmax').checked;
+  $('pira').disabled = iraMax;
+  const iraAmt = iraMax ? Infinity : numVal('pira', 0, 1e6), iraType = $('piratype').value;
+  const otherRet0 = numVal('pother', 0, 1e9);
+  const ssMo = numVal('pssn', 0, 1e6), ssAge = Math.min(70, Math.max(62, Math.round(numVal('pssage', 62, 70)))), ssFactor = ssClaimFactor(ssAge, birthYear);
+  $('pssnReset').hidden = Math.round(ssMo) === SS_DEFAULT;
+  const rothReg = $('t401').value === 'roth', cuRoth = $('troth').checked, pdTaxable = $('tpd').checked;
+  const otherInc = numVal('toth', 0, 1e9), otherPre = numVal('tpre', 0, 1e9), gains = numVal('tst', 0, 1e9) + numVal('tlt', 0, 1e9);
+  const rmdAge = rmdStartAge(birthYear);
+  const byYear = {}; rows.forEach(x => { byYear[x.year] = x; });
+  const pct1 = x => (x * 100).toFixed(1) + '%';
+
+  let t401 = numVal('pt401', 0, 1e10), r401 = numVal('pr401', 0, 1e10), tira = numVal('ptira', 0, 1e10), rira = numVal('prira', 0, 1e10);
+  let basis = Math.min(numVal('pbasis', 0, 1e10), tira);
+  let cb = numVal('pcb', 0, 1e10);
+  let luv = numVal('pluv', 0, 1e10), luvBasis = Math.min(numVal('pluvbas', 0, 1e10), luv);
+  const lr = luvReturn();
+  // Only LTI granted in or after the starting year is counted here; earlier vested shares go in the vested LUV balance.
+  const grant = g => g < start ? 0 : ltiGrant(inp, as, finalYear, g);
+  const cbr = numVal('pcbr', -50, 50) / 100, cbHalf = Math.sqrt(1 + cbr);
+  let nq = numVal('pnqbal', 0, 1e10);
+  const nqOn = $('pnqon').checked, nqPct = numVal('pnqpct', 0, 100) / 100, nqN = Math.min(5, Math.max(1, +$('pnqn').value || 5));
+  const startTira = tira, startPretaxIra = tira - basis;
+  const half = Math.sqrt(1 + apr);
+  const out = [];
+  let overRoth = 0, reducedRoth = 0, capped = 0, proRata = 0;
+
+  for (let y = start; y <= endYear; y++) {
+    const age = y - birthYear;   // age reached by December 31
+    const x = byYear[y];
+    const working = !!x && y <= finalYear && x.salary > 0;
+    let tAdd = 0, rAdd = 0, iraT = 0, iraR = 0, iraNote = '', convTaxable = 0, cbAdd = 0, rolled = 0, luvAdd = 0, luvVest = 0, nqAdd = 0, nqDist = 0;
+    if (working) {
+      const cuR = cuRoth && y >= 2026;
+      tAdd = (rothReg ? 0 : x.selfRegular) + (cuR ? 0 : x.selfCatchup) + x.nec.inPlan + x.ps.inPlan;
+      rAdd = (rothReg ? x.selfRegular : 0) + (cuR ? x.selfCatchup : 0);
+      cbAdd = x.mb;
+      luvAdd = x.lti;
+      nqAdd = x.excess * nqFor(y);
+      if (iraAmt > 0) {
+        const L = iraLimits(y, infl);
+        const cap = L.lim + (x.ageEnd >= 50 ? L.cu : 0);
+        const amt = Math.min(iraAmt, cap);
+        if (!iraMax && iraAmt > cap) capped++;
+        const pre = x.self - (rothReg ? x.selfRegular : 0) - (cuR ? x.selfCatchup : 0);
+        const magi = Math.max(0, x.salary + x.sti + ltiVestValue(inp, as, finalYear, y) + x.excess + (pdTaxable ? x.perDiem : 0) + otherInc + gains - pre - otherPre - nqAdd);
+        const frac = ([lo, hi]) => magi <= lo ? 1 : (magi >= hi ? 0 : (hi - magi) / (hi - lo));
+        if (iraType === 'roth') {
+          const allowed = Math.min(cap, Math.ceil(cap * frac(L.roth[fs]) / 10) * 10);
+          iraR = Math.min(amt, allowed);
+          if (iraR <= 0) { overRoth++; iraNote = 'Over Roth income limit'; }
+          else if (iraR < amt) { reducedRoth++; iraNote = 'Roth, reduced by income'; }
+          else iraNote = 'Roth';
+        } else if (iraType === 'trad') {
+          const ded = Math.min(amt, Math.ceil(cap * frac(L.ded[fs]) / 10) * 10);
+          iraT = amt; basis += amt - ded;
+          iraNote = ded >= amt ? 'Traditional, deductible' : (ded > 0 ? 'Traditional, part deductible' : 'Traditional, after-tax');
+        } else {
+          // Nondeductible traditional contribution, converted to Roth the same year. Pro-rata rule applies to other traditional IRA money.
+          const bal = tira + amt, bas = basis + amt;
+          const basisUsed = bal > 0 ? amt * bas / bal : amt;
+          convTaxable = amt - basisUsed;
+          basis = bas - basisUsed;
+          iraR = amt;
+          if (convTaxable > 0.5) proRata++;
+          iraNote = convTaxable > 0.5 ? 'Backdoor Roth, part taxable' : 'Backdoor Roth';
+        }
+      }
+    }
+    // RMDs: prior December 31 balance ÷ Uniform Lifetime divisor, from the RMD age on. Roth accounts have no RMDs.
+    let rmd401 = 0, rmdIra = 0;
+    if (age >= rmdAge) { const d = ultDivisor(age); rmd401 = t401 / d; rmdIra = tira / d; }
+    const iraBasisOut = tira > 0 ? rmdIra * basis / tira : 0;
+    basis = Math.max(0, basis - iraBasisOut);
+    // Growth: start balance for the full year; contributions and RMDs at mid-year.
+    t401 = Math.max(0, t401 * (1 + apr) + (tAdd - rmd401) * half);
+    r401 = Math.max(0, r401 * (1 + apr) + rAdd * half);
+    tira = Math.max(0, tira * (1 + apr) + (iraT - rmdIra) * half);
+    rira = Math.max(0, rira * (1 + apr) + iraR * half);
+    // Cash balance plan: grows at its own rate with this year's credit at mid-year, then rolls into the traditional 401k at the end of the retirement year.
+    cb = Math.max(0, cb * (1 + cbr) + cbAdd * cbHalf);
+    if (y >= finalYear && cb > 0) { rolled = cb; t401 += cb; cb = 0; }
+    // LTI: each grant grows at the LUV return while unvested; 3 years later it vests, is taxed at that value, and that value is its basis.
+    luvVest = grant(y - LTI_VEST_YEARS) * Math.pow(1 + lr, LTI_VEST_YEARS);
+    luv = Math.max(0, luv * (1 + lr) + luvVest);
+    luvBasis += luvVest;
+    let luvUnvested = 0;
+    for (let k = 0; k < LTI_VEST_YEARS; k++) luvUnvested += grant(y - k) * Math.pow(1 + lr, k);
+    // Non-qualified plan: deferrals at mid-year while working; after retirement, equal yearly installments paid at the start of each year.
+    if (y > finalYear && y <= finalYear + nqN && nq > 0) {
+      const rem = finalYear + nqN - y + 1;
+      let f = 0; for (let k = 0; k < rem; k++) f += Math.pow(1 + apr, -k);
+      nqDist = rem === 1 ? nq : nq / f;
+      nq -= nqDist;
+    }
+    nq = Math.max(0, nq * (1 + apr) + nqAdd * half);
+    basis = Math.min(basis, tira);
+
+    const rmd = rmd401 + rmdIra, rmdTaxable = rmd - iraBasisOut;
+    // Social Security: starts the year you reach the claiming age (after retirement), grown with inflation from today.
+    const ss = y > finalYear && age >= ssAge ? ssMo * 12 * ssFactor * Math.pow(1 + inflR, y - start) : 0;
+    let rmdTax = 0, rmdRate = 0, bracket = null, other = 0;
+    if (rmd > 0) {
+      const T = taxTable(y, infl);
+      other = otherRet0 * Math.pow(1 + inflR, y - start);
+      const add65 = age >= 65 ? Math.floor((fs === 'mfj' ? 1650 : 2050) * Math.pow(1 + inflR, Math.max(0, y - 2026)) / 50) * 50 : 0;
+      const ded = T.std[fs] + add65;
+      const withR = bracketTax(Math.max(0, other + rmdTaxable + ssTaxable(ss, other + rmdTaxable, fs) - ded), T.br[fs]);
+      const without = bracketTax(Math.max(0, other + ssTaxable(ss, other, fs) - ded), T.br[fs]);
+      rmdTax = withR.tax - without.tax; rmdRate = rmdTax / rmd; bracket = TAX_RATES[withR.idx];
+    }
+    const total = t401 + r401 + tira + rira + cb + luv + luvUnvested + nq;
+    out.push({y, age, working, tAdd, rAdd, ira: iraT + iraR, iraNote, convTaxable, t401, r401, tira, rira, cb, cbAdd, rolled, luv, luvAdd, luvVest, luvUnvested, luvGain: Math.max(0, luv - luvBasis), ss, nq, nqAdd, nqDist, rmdTaxable, otherRet: y > finalYear ? otherRet0 * Math.pow(1 + inflR, y - start) : 0, total,
+      real: total / Math.pow(1 + inflR, y - start + 1), rmd, rmdTax, rmdRate, bracket, other});
+  }
+
+  const retRow = out.find(o => o.y === finalYear) || null;
+  const rmdRows = out.filter(o => o.rmd > 0);
+  const firstRmd = rmdRows[0] || null;
+  const last = out[out.length - 1] || null;
+  const totRmd = rmdRows.reduce((t, o) => t + o.rmd, 0), totTax = rmdRows.reduce((t, o) => t + o.rmdTax, 0);
+
+  $('projsum').textContent = last ? ((retRow ? `${money0(retRow.total)} at retirement` : `${money0(last.total)} at age ${last.age}`) + (firstRmd ? ` · first RMD ${firstRmd.y}: ${money0(firstRmd.rmd)} at ${pct1(firstRmd.rmdRate)} tax` : '')) : '';
+  if (!last) { $('projout').innerHTML = '<div class="note warn">The starting year is after the last year to project. Check the starting year and “Project through age”.</div>'; return []; }
+
+  const notes = [];
+  if (start > finalYear) notes.push(['info', `The starting year is after retirement (${finalYear}), so no new 401k or IRA contributions are added.`]);
+  if (overRoth) notes.push(['warn', `Income is over the Roth IRA limit in ${overRoth} working year${overRoth > 1 ? 's' : ''}, so nothing goes into the Roth IRA then. Choose “Roth conversion (backdoor)” to get the money into a Roth.`]);
+  if (reducedRoth) notes.push(['warn', `The Roth IRA contribution is reduced by the income phase-out in ${reducedRoth} year${reducedRoth > 1 ? 's' : ''}.`]);
+  if (capped) notes.push(['info', `The IRA contribution is held to the IRS limit in ${capped} year${capped > 1 ? 's' : ''}.`]);
+  if (proRata) notes.push(['warn', `Pro-rata rule: you have pre-tax money in a traditional IRA (${money0(startPretaxIra)} at the start), so part of each backdoor conversion is taxable. Rolling that money into the 401k first would avoid this.`]);
+  if (iraType === 'trad' && startTira === 0 && out.some(o => o.iraNote === 'Traditional, after-tax')) notes.push(['info', 'At this income a traditional IRA contribution is not deductible because you are covered by a 401k. It is tracked as after-tax basis.']);
+
+  let h = '';
+  if (notes.length) h += '<div class="notes">' + notes.map(([k, t]) => `<div class="note ${k}">${esc(t)}</div>`).join('') + '</div>';
+  const tradAt = o => o.t401 + o.tira, rothAt = o => o.r401 + o.rira;
+  h += `<div class="taxstats">
+    <div class="stat"><div class="k">At retirement${retRow ? ', end of ' + finalYear : ''}</div><div class="n">${retRow ? money0(retRow.total) : '—'}</div><div class="d">${retRow ? `${money0(tradAt(retRow))} traditional${retRow.rolled ? ' (incl. ' + money0(retRow.rolled) + ' cash balance rollover)' : ''}, ${money0(rothAt(retRow))} Roth, ${money0(retRow.luv + retRow.luvUnvested)} LUV stock; ${money0(retRow.real)} in today’s dollars` : 'retirement is before the starting year'}</div></div>
+    <div class="stat"><div class="k">First RMD</div><div class="n">${firstRmd ? money0(firstRmd.rmd) : '—'}</div><div class="d">${firstRmd ? `${firstRmd.y}, age ${firstRmd.age}; RMDs start at ${rmdAge}` : `RMDs start at age ${rmdAge}, after this projection`}</div></div>
+    <div class="stat"><div class="k">RMD tax rate</div><div class="n">${firstRmd ? pct1(firstRmd.rmdRate) : '—'}</div><div class="d">${firstRmd ? `first year; ${pct1(totRmd ? totTax / totRmd : 0)} average through age ${endAge}` : 'no RMDs in range'}</div></div>
+    <div class="stat"><div class="k">At age ${last.age}</div><div class="n">${money0(last.total)}</div><div class="d">${money0(last.real)} in today’s dollars; ${money0(totRmd)} of RMDs taken</div></div>
+  </div>`;
+
+  const body = out.map(o => {
+    const tag = o.y === finalYear ? '<span class="tag set">Retires</span>' : (firstRmd && o.y === firstRmd.y ? '<span class="tag est">RMDs start</span>' : '');
+    return `<tr class="${o.y === finalYear ? 'cur' : ''}"><td><b>${o.y}</b>${tag}</td><td>${o.age}</td>
+      <td>${o.tAdd ? money0(o.tAdd) : '—'}</td><td>${o.rAdd ? money0(o.rAdd) : '—'}</td><td>${o.cbAdd ? money0(o.cbAdd) : '—'}</td><td>${o.nqAdd ? money0(o.nqAdd) : '—'}</td><td>${o.luvAdd ? money0(o.luvAdd) : '—'}</td><td>${o.luvVest ? money0(o.luvVest) : '—'}</td>
+      <td>${o.ira ? money0(o.ira) + `<br><small style="color:var(--muted)">${o.iraNote}${o.convTaxable > 0.5 ? ', ' + money0(o.convTaxable) + ' taxable' : ''}</small>` : (o.iraNote ? `<small style="color:var(--muted)">${o.iraNote}</small>` : '—')}</td>
+      <td>${money0(o.t401)}</td><td>${money0(o.r401)}</td><td>${money0(o.tira)}</td><td>${money0(o.rira)}</td><td>${o.rolled ? '$0<br><small style="color:var(--muted)">' + money0(o.rolled) + ' rolled to 401k</small>' : money0(o.cb)}</td><td>${money0(o.nq)}</td><td>${o.nqDist ? money0(o.nqDist) : '—'}</td><td>${money0(o.luvUnvested)}</td><td>${money0(o.luv)}</td><td>${money0(o.luvGain)}</td>
+      <td class="big">${money0(o.total)}</td><td>${money0(o.real)}</td><td>${o.ss ? money0(o.ss) : '—'}</td>
+      <td>${o.rmd ? money0(o.rmd) : '—'}</td><td>${o.rmd ? money0(o.rmdTax) : '—'}</td><td>${o.rmd ? pct1(o.rmdRate) : '—'}</td><td>${o.rmd ? Math.round(o.bracket * 100) + '%' : '—'}</td></tr>`;
+  }).join('');
+  h += `<section class="card wide" style="margin-bottom:14px"><div class="hd"><h3>Year-end balances, ${start}–${endYear}</h3><span class="tag set">${pct1(apr)} return · ${pct1(inflR)} inflation</span></div>
+    <div class="scroll" style="max-height:560px"><table><thead><tr><th>Year</th><th>Age</th><th>Added to traditional 401k</th><th>Added to Roth 401k</th><th>Added to cash balance plan</th><th>Deferred to non-qualified plan</th><th>LTI granted (LUV)</th><th>LTI vesting (taxable)</th><th>IRA contribution</th><th>Traditional 401k</th><th>Roth 401k</th><th>Traditional IRA</th><th>Roth IRA</th><th>Cash balance plan</th><th>Non-qualified plan</th><th>Non-qualified distribution (taxable)</th><th>LUV unvested</th><th>LUV vested</th><th>LUV gain since vesting</th><th>Total</th><th>Total in today’s dollars</th><th>Social Security</th><th>RMD</th><th>Federal tax on RMD</th><th>RMD effective tax rate</th><th>Top bracket</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+
+  h += `<section class="card wide"><h3>How the projection works</h3><div class="explain"><ul>
+    <li><b>Starting point:</b> the balances you enter are as of January 1, ${start}. Each year the account grows by the expected return; that year’s contributions and RMDs are counted at mid-year.</li>
+    <li><b>401k contributions:</b> each working year’s amounts from the calculator above. Your regular deferral goes to ${rothReg ? 'Roth' : 'traditional'} (set in the tax section), the catch-up goes to ${cuRoth ? 'Roth from 2026' : 'traditional'}, and company NEC and profit sharing go to traditional. </li>
+    <li><b>Cash balance plan:</b> each working year’s MBCBP credit from the calculator above is added, and the balance grows at the cash balance plan return. At the end of the retirement year (${finalYear}) the whole balance rolls into the traditional 401k, where it grows at the expected return and counts toward RMDs. A rollover is not taxed.</li>
+    <li><b>IRA:</b> contributions stop after the retirement year, when there are no more wages. Roth IRA eligibility and traditional IRA deductibility use the IRS income ranges for each year (2024–2027 actual, later years grown with inflation), based on the income from the calculator plus the other income and gains in the tax section. A backdoor Roth is a nondeductible traditional IRA contribution converted the same year; if the traditional IRA holds pre-tax money, the pro-rata rule makes part of each conversion taxable.</li>
+    <li><b>Non-qualified plan:</b> ${Object.keys(NQ_OVR).length ? 'the deferral is elected year by year (see “Election by year”); years not changed use the default of ' + (nqOn ? pctTxt(nqPct) : 'no deferral') : (nqOn ? `${pctTxt(nqPct)} of each working year’s excess income is deferred` : 'deferral is off, so nothing new is deferred')}. Deferrals are not taxed when made and grow tax free at the expected return (the same as the 401k). Starting the year after retirement (${finalYear + 1}) the balance is paid in ${nqN} equal yearly installment${nqN > 1 ? 's' : ''}, each taxed as ordinary income; the unpaid balance keeps growing. Distributions show in the tax section for those years.</li>
+    <li><b>LUV stock (LTI):</b> each working year’s LTI from the calculator above is granted as Southwest Airlines (LUV) shares that vest 3 years later. Unvested shares grow at the expected LUV return and are not income yet. When they vest, their value is taxable income (shown in the tax section for that year and used for the Roth IRA income test) and becomes their cost basis, so the gain shown is only growth after vesting. Grants still unvested at retirement are assumed to keep vesting on schedule. Only grants made in ${start} or later are counted here; enter shares from earlier grants in the vested LUV balance once they have vested. The total includes both vested and unvested shares. Selling is not modeled; long-term gains would be taxed at the capital gains rates. Stock has no RMDs.</li>
+    <li><b>RMDs:</b> required from the traditional 401k and traditional IRA starting at age ${rmdAge} (born ${birthYear}), using the prior year-end balance divided by the IRS Uniform Lifetime Table factor. Roth 401k and Roth IRA have no RMDs for the owner. RMDs are taken out and not reinvested here.</li>
+    <li><b>Social Security:</b> ${money0(ssMo)} a month at full retirement age (${Math.floor(fraMonths(birthYear) / 12)}${fraMonths(birthYear) % 12 ? ' and ' + (fraMonths(birthYear) % 12) + ' months' : ''}) in today’s dollars, started at age ${ssAge}: ${pctTxt(ssFactor)} of the full amount (reduced before full retirement age, 8% a year more after it, up to 70). It begins the year you reach ${ssAge}, not before retirement, and grows with inflation. Up to 85% of it is taxable depending on your other income; that is counted in the tax on RMDs and in the tax section.</li>
+    <li><b>Tax on RMDs:</b> the extra federal income tax the RMD adds on top of your other taxable retirement income (grown with inflation), using the ${fs === 'mfj' ? 'married filing jointly' : 'single'} standard deduction plus the age 65+ additional deduction for you. RMD effective tax rate = that tax ÷ the RMD. Brackets after 2027 grow with the inflation rate. State tax is not included.</li>
+    <li>“Today’s dollars” divides each year-end balance by inflation since January 1, ${start}.</li>
+  </ul></div></section>`;
+  if (LAST) LAST.projMeta = {start, endYear, endAge, apr, infl, lr, cbr, rmdAge, retRow, firstRmd, last, totRmd, totTax, iraType, iraMax, nqOn, nqPct, nqN};
+  $('projout').innerHTML = h;
+  return out;
+}
+
+/* ---------- federal income tax estimate for the selected year ---------- */
+const TAX_DEFAULTS = {tfs:'mfj', tkids:'0', tdep:'0', toth:'0', tpre:'0', t401:'trad', tst:'0', tlt:'0', tg:'2.5'};
+function numVal(id, lo, hi) { const n = parseFloat(String($(id).value).replace(/[$,\s]/g, '')); return isNaN(n) ? 0 : Math.min(hi, Math.max(lo, n)); }
+const retiredR = (inp, y) => ({year:y, salary:0, sti:0, lti:0, excess:0, perDiem:0, self:0, selfRegular:0, selfCatchup:0, ageEnd: completedYears(inp.dob, Date.UTC(y, 11, 31))});
+function renderTax(r0, year0, inp, as, finalYear, proj, firstYear) {
+  // Tax year: follows the calculator year unless one is picked; covers working and retired years.
+  const sel = $('tyear');
+  const lastY = Math.max(finalYear, proj.length ? proj[proj.length - 1].y : finalYear);
+  const key = firstYear + '-' + lastY + '-' + year0 + '-' + finalYear;
+  if (sel.dataset.k !== key) {
+    const want = sel.value;
+    let opts = `<option value="">Same as calculator year (${year0})</option>`;
+    for (let y = firstYear; y <= lastY; y++) opts += `<option value="${y}">${y}${y > finalYear ? ' (retired)' : ''}</option>`;
+    sel.innerHTML = opts; sel.dataset.k = key;
+    sel.value = (want && +want >= firstYear && +want <= lastY) ? want : '';
+  }
+  const year = sel.value ? +sel.value : year0;
+  const retired = year > finalYear;
+  const r = year === year0 ? r0 : (retired ? retiredR(inp, year) : yearResult(inp, year, as, finalYear));
+  const retTxt = year === finalYear ? fmtDate(inp.retire) : null;
+  const pr = proj.find(o => o.y === year) || null;
+  const nqPct = nqFor(year);
+  const nqDefer = !retired ? r.excess * nqPct : 0;
+  const nqDist = pr ? pr.nqDist : 0, rmdInc = pr ? pr.rmdTaxable : 0, retInc = pr ? pr.otherRet : 0, convInc = pr ? pr.convTaxable : 0;
+  const ssBen = pr ? pr.ss : 0;
+  const ltiVest = ltiVestValue(inp, as, finalYear, year);
+  const fs = $('tfs').value === 'single' ? 'single' : 'mfj';
+  const kids = Math.floor(numVal('tkids', 0, 20)), deps = Math.floor(numVal('tdep', 0, 20));
+  const otherInc = numVal('toth', 0, 1e9), otherPre = numVal('tpre', 0, 1e9), g = numVal('tg', 0, 10);
+  const pdTaxable = $('tpd').checked, rothCU = $('troth').checked && year >= 2026;
+  const rothReg = $('t401').value === 'roth';
+  const stcg = numVal('tst', 0, 1e9), ltcg = numVal('tlt', 0, 1e9);
+  const T = taxTable(year, g), tops = T.br[fs];
+
+  const wages = r.salary + r.sti + ltiVest + r.excess - nqDefer + (pdTaxable ? r.perDiem : 0) + nqDist + rmdInc + retInc + convInc;
+  const gross = wages + otherInc + stcg + ltcg;
+  const rothPart = (rothReg ? r.selfRegular : 0) + (rothCU ? r.selfCatchup : 0);
+  const pre401k = r.self - rothPart;
+  const agi0 = Math.max(0, gross - pre401k - otherPre);
+  const ssTx = ssTaxable(ssBen, agi0, fs);
+  const agi = agi0 + ssTx;
+  // Age 65+ deduction (2025-2028): $6,000 for the pilot, reduced 6% of income over $75,000 ($150,000 joint).
+  const senior = (r.ageEnd >= 65 && year >= 2025 && year <= 2028) ? Math.max(0, 6000 - 0.06 * Math.max(0, agi - (fs === 'mfj' ? 150000 : 75000))) : 0;
+  const std = T.std[fs];
+  const ti = Math.max(0, agi - std - senior);
+  // Long-term gains sit on top of ordinary income and use the 0/15/20% rates; short-term gains are ordinary income.
+  const pref = Math.min(ltcg, ti);
+  const oti = ti - pref;
+  const bt = bracketTax(oti, tops);
+  const [c0, c20] = T.cg[fs];
+  const seg = (lo, hi) => Math.max(0, Math.min(ti, hi) - Math.max(oti, lo));
+  const lt0 = seg(0, c0), lt15 = seg(c0, c20), lt20 = seg(c20, Infinity);
+  const ltTax = lt15 * 0.15 + lt20 * 0.20;
+  const ltRate = ti > c20 ? 0.20 : (ti > c0 ? 0.15 : 0);
+  const ltRoom = ti > c20 ? null : (ti > c0 ? c20 - ti : c0 - ti);
+  // Net investment income tax: 3.8% of the smaller of the gains or income over $250,000 joint / $200,000 single.
+  const niitThr = fs === 'mfj' ? 250000 : 200000;
+  const niit = 0.038 * Math.max(0, Math.min(stcg + ltcg, agi - niitThr));
+  const regTax = bt.tax + ltTax;
+  // Child tax credit and $500 other-dependent credit, reduced $50 per $1,000 of income over $400,000 joint / $200,000 single.
+  const creditFull = kids * T.ctc + deps * 500;
+  const phase = Math.ceil(Math.max(0, agi - (fs === 'mfj' ? 400000 : 200000)) / 1000) * 50;
+  const creditAllowed = Math.max(0, creditFull - phase);
+  const creditUsed = Math.min(creditAllowed, regTax);
+  const incTax = regTax - creditUsed;
+  const tax = incTax + niit;
+  const eff = (gross + ssBen) > 0 ? tax / (gross + ssBen) : 0, effTi = ti > 0 ? tax / ti : 0;
+  const cur = bt.rows[bt.idx], next = bt.rows[bt.idx + 1];
+  const room = cur.hi === Infinity ? null : cur.hi - oti;
+  const intoBracket = oti - cur.lo;
+  const pct = x => (x * 100).toFixed(1) + '%';
+  const fsTxt = fs === 'mfj' ? 'Married filing jointly' : 'Single';
+
+  $('taxsum').textContent = `${year} · ${fsTxt} · ${money0(tax)} tax · ${pct(eff)} effective · ${Math.round(cur.rate * 100)}% bracket` + (room != null ? ` · ${money0(room)} to ${Math.round(next.rate * 100)}%` : '');
+
+  let h = '';
+  const notes = [];
+  if (T.projected) notes.push(['info', `Tax brackets, standard deduction and child tax credit for ${year} are estimates, grown ${g}% a year from the 2027 IRS figures.`]);
+  if (retTxt) notes.push(['info', `${year} is the final year, so income counts only through ${retTxt}.`]);
+  if (retired) notes.push(['info', `Retired in ${year}: no pay. Income is non-qualified plan distributions, LTI still vesting, RMDs and other retirement income from the retirement accounts section, plus any other income and gains entered here.`]);
+  if (phase > 0 && creditFull > 0) notes.push(['warn', `Income is over the ${fs === 'mfj' ? '$400,000' : '$200,000'} limit, so dependent credits are cut by ${money0(Math.min(phase, creditFull))}.`]);
+  if (notes.length) h += '<div class="notes">' + notes.map(([k, t]) => `<div class="note ${k}">${esc(t)}</div>`).join('') + '</div>';
+
+  h += `<div class="taxstats">
+    <div class="stat"><div class="k">Federal income tax</div><div class="n">${money0(tax)}</div><div class="d">about ${money0(tax / 12)} a month${niit > 0 ? '; includes ' + money0(niit) + ' NIIT' : ''}</div></div>
+    <div class="stat"><div class="k">Effective rate</div><div class="n">${pct(eff)}</div><div class="d">of gross income; ${pct(effTi)} of taxable income</div></div>
+    <div class="stat"><div class="k">Tax bracket</div><div class="n">${Math.round(cur.rate * 100)}%</div><div class="d">${money0(cur.lo)} – ${cur.hi === Infinity ? 'and up' : money0(cur.hi)} taxable</div></div>
+    <div class="stat"><div class="k">Room to next bracket</div><div class="n">${room == null ? 'Top' : money0(room)}</div><div class="d">${room == null ? 'already in the 37% bracket' : 'more ordinary taxable income before ' + Math.round(next.rate * 100) + '%'}</div></div>
+  </div>`;
+
+  h += '<div class="cards">';
+  h += `<section class="card"><h3>How the tax is worked out, ${year}</h3>
+    ${row('Salary', money(r.salary), '', 'sub')}
+    ${r.sti ? row('STI', money(r.sti), '', 'sub') : ''}
+    ${ltiVest ? row('LTI vesting (LUV shares)', money(ltiVest), `${year - LTI_VEST_YEARS} grant of ${money(ltiGrant(inp, as, finalYear, year - LTI_VEST_YEARS))} grown at the expected LUV return to its value at vesting.`, 'sub') : ''}
+    ${row('Excess income', money(r.excess), 'Company contributions paid out as income are taxable.', 'sub')}
+    ${nqDefer ? row('Less deferred to non-qualified plan', '−' + money(nqDefer), `${pctTxt(nqPct)} of excess income; not taxed until it is paid out.`, 'sub') : ''}
+    ${nqDist ? row('Non-qualified plan distribution', money(nqDist), 'Yearly installment after retirement; taxable when paid.', 'sub') : ''}
+    ${rmdInc ? row('Taxable RMDs', money(rmdInc), 'From the retirement accounts projection.', 'sub') : ''}
+    ${retInc ? row('Other retirement income', money(retInc), 'From the retirement accounts section, grown with inflation.', 'sub') : ''}
+    ${convInc ? row('Taxable part of backdoor Roth conversion', money(convInc), 'Pro-rata rule on pre-tax traditional IRA money.', 'sub') : ''}
+    ${pdTaxable ? row('Domestic per diem', money(r.perDiem), '', 'sub') : ''}
+    ${otherInc ? row('Other taxable income', money(otherInc), '', 'sub') : ''}
+    ${stcg ? row('Short-term capital gains', money(stcg), 'Taxed at ordinary rates.', 'sub') : ''}
+    ${ltcg ? row('Long-term capital gains', money(ltcg), 'Taxed at the capital gains rates.', 'sub') : ''}
+    ${row('Gross income', money(gross), pdTaxable ? '' : `Per diem of ${money(r.perDiem)} is left out as a tax-free reimbursement.`, 'tot')}
+    ${row('Less pre-tax self 401k', '−' + money(pre401k), rothPart > 0 ? `${money(rothPart)} of your self 401k is Roth${rothReg ? '' : ' catch-up'}, so it stays taxable.` : 'Company 401k and cash balance credits inside the plans are not taxed now.', 'sub')}
+    ${otherPre ? row('Less other pre-tax deductions', '−' + money(otherPre), '', 'sub') : ''}
+    ${ssBen ? row('Plus taxable Social Security', money(ssTx), `Of the ${money(ssBen)} benefit, up to 85% is taxable depending on your other income.`, 'sub') : ''}
+    ${row('Adjusted gross income', money(agi), '', 'tot')}
+    ${row('Less standard deduction', '−' + money(std), `${fsTxt}, ${year}.`, 'sub')}
+    ${senior > 0 ? row('Less age 65+ deduction', '−' + money(senior), 'For the pilot only, 2025 to 2028.', 'sub') : ''}
+    ${row('Taxable income', money(ti), '', 'tot')}
+    ${ltcg ? row('Ordinary taxable income', money(oti), 'Taxable income less long-term gains.', 'sub') : ''}
+    ${row('Tax on ordinary income', money(bt.tax), '', 'sub')}
+    ${ltcg ? row('Tax on long-term gains', money(ltTax), `${money0(lt0)} at 0%, ${money0(lt15)} at 15%, ${money0(lt20)} at 20%.`, 'sub') : ''}
+    ${row('Less dependent credits', '−' + money(creditUsed), creditFull ? `${kids} × ${money0(T.ctc)} child tax credit + ${deps} × $500 other dependent credit${phase > 0 ? ', less the income phase-out' : ''}.` : 'No dependents entered.', 'sub')}
+    ${niit > 0 ? row('Income tax after credits', money(incTax), '', 'sub') + row('Net investment income tax', money(niit), `3.8% of the smaller of capital gains or income over ${money0(niitThr)}.`, 'sub') : ''}
+    ${row('Federal income tax', money(tax), niit > 0 ? 'Income tax plus net investment income tax.' : '', 'tot')}</section>`;
+
+  const brRows = bt.rows.map((b, i) => {
+    const width = b.hi === Infinity ? (b.amt > 0 ? 100 : 0) : Math.min(100, b.amt / (b.hi - b.lo) * 100);
+    return `<tr class="${i === bt.idx ? 'cur' : ''}"><td>${Math.round(b.rate * 100)}%</td><td>${money0(b.lo)} – ${b.hi === Infinity ? 'and up' : money0(b.hi)}</td><td>${money0(b.amt)}</td><td>${money0(b.tax)}</td><td><div class="fill" aria-hidden="true"><span style="width:${width.toFixed(1)}%"></span></div></td></tr>`;
+  }).join('');
+  h += `<section class="card"><h3>${year} ordinary income brackets, ${fsTxt.toLowerCase()}</h3>
+    <div class="scroll"><table><thead><tr><th>Rate</th><th>Taxable income range</th><th>Your income in it</th><th>Tax</th><th>Filled</th></tr></thead><tbody>${brRows}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td>${money0(oti)}</td><td>${money0(bt.tax)}</td><td></td></tr></tfoot></table></div>
+    <div class="explain" style="margin-top:10px">
+      <p>${room == null ? 'Taxable income is in the top bracket, so every extra dollar is taxed at 37%.' : `Taxable income is ${money0(intoBracket)} into the ${Math.round(cur.rate * 100)}% bracket. You can add <b>${money0(room)}</b> more before the next dollar is taxed at ${Math.round(next.rate * 100)}%.`}${bt.idx > 0 && intoBracket > 0 ? ` Cutting taxable income by ${money0(intoBracket)} (for example with more pre-tax 401k) would bring you down to the ${Math.round(bt.rows[bt.idx - 1].rate * 100)}% bracket.` : ''}</p>
+    </div></section>`;
+
+  h += `<section class="card wide"><h3>Capital gains, ${year}</h3>
+    <div class="lims">
+      <div><span>Short-term gains</span><b>${money0(stcg)}</b></div>
+      <div><span>Long-term gains</span><b>${money0(ltcg)}</b></div>
+      <div><span>Long-term gains rate</span><b>${Math.round(ltRate * 100)}%</b></div>
+      <div><span>Room to next gains rate</span><b>${ltRoom == null ? 'At 20%' : money0(ltRoom)}</b></div>
+      <div><span>0% rate up to</span><b>${money0(c0)}</b></div>
+      <div><span>20% rate above</span><b>${money0(c20)}</b></div>
+      <div><span>Net investment income tax</span><b>${money0(niit)}</b></div>
+      <div><span>NIIT starts at income over</span><b>${money0(niitThr)}</b></div>
+    </div>
+    <p class="explain" style="margin:10px 0 0">${ltRoom == null ? 'Taxable income is above the 20% threshold, so more long-term gains are taxed at 20%.' : `The next ${money0(ltRoom)} of taxable income keeps long-term gains at ${Math.round(ltRate * 100)}%; above that they are taxed at ${ltRate === 0 ? 15 : 20}%.`} Short-term gains are added to ordinary income and taxed at your bracket rate.</p></section>`;
+
+  h += `<section class="card wide"><h3>What this estimate covers</h3><div class="explain"><ul>
+    <li>Non-qualified deferral: the chosen percent of excess income is left out of taxable income while working, then taxed as ordinary income when the installments are paid after retirement.</li>
+    <li>Pick any tax year, working or retired. Other income, deductions and capital gains entered here apply to whichever year is shown.</li>
+    <li>STI is taxed as wages in the year it is paid. LTI is not income when granted; it is taxed when it vests 3 years later, at the expected value of the LUV shares then (set the LUV return in the retirement accounts section).</li>
+    <li>Self 401k: Traditional deferrals lower taxable income now; Roth deferrals do not. The catch-up setting is separate.</li>
+    <li>Capital gains are net gains for the year; losses are not modeled. Long-term gains (and qualified dividends) are stacked on top of ordinary income for the 0/15/20% rates. The 3.8% net investment income tax uses income over $250,000 joint or $200,000 single; those limits are not indexed.</li>
+    <li>The bracket and room to the next bracket are measured on ordinary taxable income, which includes short-term gains but not long-term gains.</li>
+    <li>Federal income tax only. Social Security, Medicare and state income tax are not included.</li>
+    <li>Uses the standard deduction, not itemized deductions. The tax year follows the year chosen at the top.</li>
+    <li>Child tax credit: ${money0(T.ctc)} per child under 17 in ${year}. Other dependents: $500 each. Both shrink by $50 for every $1,000 of income over $400,000 (joint) or $200,000 (single). Credits here only reduce tax to zero; the refundable part is not counted.</li>
+    <li>“Room to next bracket” is measured on taxable income, after the standard deduction and pre-tax 401k.</li>
+    <li>Brackets for 2024–2027 are the IRS figures (2027 announced November 5, 2026). Later years are projected.</li>
+  </ul></div></section>`;
+  h += '</div>';
+  if (LAST) LAST.tax = {year, fsTxt, kids, deps, gross, agi, std, senior, ti, oti, ordTax: bt.tax, ltTax, niit, creditUsed, tax, eff, effTi,
+    rate: cur.rate, room, nextRate: next ? next.rate : null, nqDefer, nqDist, rmdInc, retInc, convInc, ssBen, ssTx, ltiVest, stcg, ltcg, pre401k, rothPart, retired, projected: T.projected};
+  $('taxout').innerHTML = h;
+}
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 1800);
+}
+function copyTable(rows) {
+  const head = ['Year','Age at year end','Total Salary','Total STI','Total LTI','Monthly Domestic Per Diem','Self 401k','Company 401k (NEC)','Profit sharing','Total 401k Contributions','MBCP Contributions','Excess Income','Total Compensation','Self 401k % needed for maximum'];
+  const lines = [head.join('\t')].concat(rows.map(x => [x.year, x.ageEnd, x.salary, x.sti, x.lti, x.perDiem, x.self, x.nec.inPlan, x.ps.inPlan, x.total401k, x.mb, x.excess, x.totalComp, x.selfMaxPctNeeded == null ? '' : (x.selfMaxPctNeeded * 100).toFixed(2) + '%'].map(v => typeof v === 'number' && v % 1 ? v.toFixed(2) : v).join('\t')));
+  const text = lines.join('\n');
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    let done = false; try { done = document.execCommand('copy'); } catch (e) {}
+    ta.remove(); toast(done ? 'Table copied' : 'Copy blocked in this view');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('Table copied'), fallback);
+  else fallback();
+}
+
+/* ---------- wiring ---------- */
+DATE_IDS.forEach(id => $(id).addEventListener('input', () => {
+  maskDate($(id));
+  if (id === 'dob') syncRetDefault();
+  if (id === 'ret') {
+    const dob = parseDate($('dob').value), v = parseDate($('ret').value);
+    retEdited = !(dob != null && v != null && v === dayBefore65(dob));
+    $('retReset').hidden = !retEdited;
+  }
+  render();
+}));
+$('ret').addEventListener('blur', () => {
+  if ($('ret').value.trim() === '') { retEdited = false; syncRetDefault(); render(); }
+});
+$('retReset').addEventListener('click', () => { retEdited = false; syncRetDefault(); render(); });
+IDS.filter(id => !DATE_IDS.includes(id)).forEach(id => $(id).addEventListener('input', render));
+yearSel.addEventListener('change', render);
+const TAX_IDS = ['tfs','tkids','tdep','toth','tpre','t401','tst','tlt','tg'];
+const setTax = () => { TAX_IDS.forEach(id => $(id).value = TAX_DEFAULTS[id]); $('tpd').checked = false; $('troth').checked = true; $('tyear').value = ''; formatMoneyInputs(); };
+TAX_IDS.concat(['tpd','troth']).forEach(id => $(id).addEventListener(['tfs','t401','tpd','troth'].includes(id) ? 'change' : 'input', render));
+const setProj = () => { PROJ_IDS.forEach(id => { $(id).value = PROJ_DEFAULTS[id]; }); $('pirmax').checked = true; $('pnqon').checked = false; NQ_OVR = {}; formatMoneyInputs(); };
+function nqRowEdit(e) {
+  const rw = e.target.closest ? e.target.closest('.nqrow') : null; if (!rw) return;
+  const y = +rw.dataset.y, cb = rw.querySelector('[data-k="on"]'), p = rw.querySelector('[data-k="pct"]');
+  const pv = parseFloat(p.value);
+  NQ_OVR[y] = {on: cb.checked, pct: isNaN(pv) ? numVal('pnqpct', 0, 100) / 100 : Math.min(100, Math.max(0, pv)) / 100};
+  render();
+}
+$('nqyears').addEventListener('input', nqRowEdit);
+$('nqyears').addEventListener('change', nqRowEdit);
+$('nqReset').addEventListener('click', () => { NQ_OVR = {}; render(); });
+// Changing the default election resets every year to the new default.
+const nqDefaultChanged = () => { if (Object.keys(NQ_OVR).length) { NQ_OVR = {}; render(); toast('Year-by-year elections reset to the new default'); } };
+$('pnqon').addEventListener('change', nqDefaultChanged);
+$('pnqpct').addEventListener('input', nqDefaultChanged);
+// TFP / STI / LTI by year: edits per year; changing a default resets every year to the defaults.
+$('yrrows').addEventListener('input', yrEdit);
+const yrDefaultChanged = () => { if (Object.keys(YEAR_OVR).length) { YEAR_OVR = {}; render(); toast('TFP, STI and LTI by year reset to the new defaults'); } };
+['tfp', 'sti', 'lti'].forEach(id => $(id).addEventListener('input', yrDefaultChanged));
+$('yrReset').addEventListener('click', () => { YEAR_OVR = {}; render(); });
+$('pnqon').addEventListener('change', render);
+$('tyear').addEventListener('change', render);
+$('pirmax').addEventListener('change', render);
+PROJ_IDS.forEach(id => $(id).addEventListener(id === 'piratype' ? 'change' : 'input', render));
+$('reset').addEventListener('click', () => { yearSel.value = DEFAULTS.year; setAll(DEFAULTS); setTax(); setProj(); render(); });
+
+/* ---------- dated summary report ---------- */
+let LAST = null;
+const val = id => $(id).value;
+const longNow = d => d.toLocaleString('en-US', {dateStyle:'long', timeStyle:'short'});
+const isoDay = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function snapshot() {
+  const n = id => numVal(id, 0, 1e12);
+  const s = {asOf: val('pstart'), t401: n('pt401'), r401: n('pr401'), cb: n('pcb'), nq: n('pnqbal'), tira: n('ptira'), basis: n('pbasis'), rira: n('prira'), luv: n('pluv'), luvBasis: n('pluvbas')};
+  s.total = s.t401 + s.r401 + s.cb + s.nq + s.tira + s.rira + s.luv;
+  return s;
+}
+const SNAP_HEAD = ['Date calculated', 'Balances as of', 'Traditional 401k', 'Roth 401k', 'Cash balance plan', 'Non-qualified plan', 'Traditional IRA', 'Traditional IRA basis', 'Roth IRA', 'Vested LUV stock', 'LUV cost basis', 'Total balances', 'Projected total at retirement', 'Projected first RMD'];
+function snapRow(d) {
+  const s = snapshot(), M = LAST && LAST.projMeta;
+  return [isoDay(d), 'Jan 1, ' + s.asOf, s.t401, s.r401, s.cb, s.nq, s.tira, s.basis, s.rira, s.luv, s.luvBasis, s.total,
+    M && M.retRow ? Math.round(M.retRow.total) : '', M && M.firstRmd ? Math.round(M.firstRmd.rmd) : ''];
+}
+function buildReport(d) {
+  const L = LAST, r = L.r, T = L.tax, M = L.projMeta, P = L.proj || [];
+  const m0 = x => money0(x || 0), pc = x => (x * 100).toFixed(1) + '%';
+  const kv = rows => '<table class="kv"><tbody>' + rows.filter(Boolean).map(([k, v, cls]) => `<tr class="${cls || ''}"><td>${esc(k)}</td><td>${v}</td></tr>`).join('') + '</tbody></table>';
+  const yes = b => b ? 'Yes' : 'No';
+  const fsTxt = val('tfs') === 'single' ? 'Single' : 'Married filing jointly';
+  const iraTxt = {trad: 'Traditional IRA', roth: 'Roth IRA', backdoor: 'Roth conversion (backdoor)'}[val('piratype')] || '';
+  let h = '';
+
+  h += `<header class="hdr"><div><div class="eyebrow">Compensation and retirement summary</div><h1>SWA Pilot Compensation Calculator</h1>
+    <div class="sub">Calculation year ${L.year} · Tax year ${T ? T.year : L.year} · Retirement date ${esc(L.retTxt)} · Final year of pay ${L.finalYear}</div></div>
+    <div class="stamp"><div class="k">Date of calculation</div><div class="n">${esc(longNow(d))}</div></div></header>`;
+
+  h += '<div class="disc"><b>Disclaimer:</b> For educational purposes only. This is not financial or tax advice. Figures are estimates based on the inputs and assumptions listed below; consult a qualified financial or tax professional before making decisions.</div>';
+  h += `<div class="kpis">
+    <div class="kpi"><div class="k">Total compensation ${L.year}</div><div class="n">${m0(r.totalComp)}</div><div class="d">salary ${m0(r.salary)}</div></div>
+    <div class="kpi"><div class="k">Federal tax ${T ? T.year : ''}</div><div class="n">${T ? m0(T.tax) : '—'}</div><div class="d">${T ? pc(T.eff) + ' effective rate' : ''}</div></div>
+    <div class="kpi"><div class="k">Tax bracket</div><div class="n">${T ? Math.round(T.rate * 100) + '%' : '—'}</div><div class="d">${T ? (T.room == null ? 'top bracket' : m0(T.room) + ' to ' + Math.round(T.nextRate * 100) + '%') : ''}</div></div>
+    <div class="kpi"><div class="k">Accounts at retirement</div><div class="n">${M && M.retRow ? m0(M.retRow.total) : '—'}</div><div class="d">${M && M.retRow ? 'end of ' + L.finalYear + ', ' + m0(M.retRow.real) + ' today' : ''}</div></div>
+    <div class="kpi"><div class="k">First RMD</div><div class="n">${M && M.firstRmd ? m0(M.firstRmd.rmd) : '—'}</div><div class="d">${M && M.firstRmd ? M.firstRmd.y + ', ' + pc(M.firstRmd.rmdRate) + ' tax rate' : ''}</div></div>
+  </div>`;
+
+  // Balance history row
+  const row1 = snapRow(d);
+  h += `<section><h2>Account balances for your history log</h2>
+    <table><thead><tr>${SNAP_HEAD.map(x => `<th>${x}</th>`).join('')}</tr></thead>
+    <tbody><tr>${row1.map((x, i) => `<td>${i < 2 ? esc(x) : (x === '' ? '—' : m0(x))}</td>`).join('')}</tr></tbody></table>
+    <p class="note">Balances entered in the calculator as of January 1, ${esc(snapshot().asOf)}. Save this summary each time you update your balances, or use “Copy history row only” to add one line per date under the headers in a spreadsheet. Total balances exclude the basis columns.</p></section>`;
+
+  // Inputs
+  h += `<section><h2>Inputs used</h2><div class="grid2">
+    <div><h3>Pilot and pay</h3>${kv([['Date of birth', esc(val('dob'))], ['Date of hire', esc(val('doh'))], ['Captain upgrade', esc(val('upg') || 'not set')], ['Retirement date', esc(val('ret'))],
+      ['Average TFP per month', esc(val('tfp'))], ['Domestic per diem hours per month', esc(val('pd'))], ['STI', esc(val('sti')) + '% of prior-year salary'], ['LTI', esc(val('lti')) + '% of salary, LUV shares vesting in 3 years'],
+      Object.keys(YEAR_OVR).length ? ['Changed by year', Object.keys(YEAR_OVR).sort().map(y => { const o = YEAR_OVR[y]; return y + ': ' + [o.tfp != null ? 'TFP ' + o.tfp : '', o.sti != null ? 'STI ' + +(o.sti * 100).toFixed(2) + '%' : '', o.lti != null ? 'LTI ' + +(o.lti * 100).toFixed(2) + '%' : ''].filter(Boolean).join(', '); }).join('; ')] : null])}</div>
+    <div><h3>Retirement plans</h3>${kv([['Self 401k', esc(val('self')) + '% of salary + STI'], ['Self 401k type', val('t401') === 'roth' ? 'Roth' : 'Traditional'], ['Catch-up as Roth', yes($('troth').checked)], ['Company 401k NEC', esc(val('nec')) + '%'],
+      ['Profit sharing', esc(val('ps')) + '%'], ['Cash balance plan (MBCBP)', esc(val('mb')) + '%'], ['IRS limit growth after 2027', esc(val('irsg')) + '%'], ['Pay rate growth after 2028', esc(val('payg')) + '%']])}</div>
+    <div><h3>Tax settings</h3>${kv([['Filing status', fsTxt], ['Children under 17', esc(val('tkids'))], ['Other dependents', esc(val('tdep'))], ['Other taxable income', m0(numVal('toth', 0, 1e12))], ['Other pre-tax deductions', m0(numVal('tpre', 0, 1e12))],
+      ['Short-term / long-term gains', m0(numVal('tst', 0, 1e12)) + ' / ' + m0(numVal('tlt', 0, 1e12))], ['Per diem taxable', yes($('tpd').checked)], ['Bracket growth after 2027', esc(val('tg')) + '%']])}</div>
+    <div><h3>Retirement accounts</h3>${kv([['Expected return (401k, IRA, non-qualified)', esc(val('papr')) + '%'], ['Expected LUV return', esc(val('plr')) + '%'], ['Cash balance plan return', esc(val('pcbr')) + '%'], ['Expected inflation', esc(val('pinf')) + '%'],
+      ['IRA contribution', ($('pirmax').checked ? 'Maximum each year' : m0(numVal('pira', 0, 1e12)) + ' a year') + ' to ' + iraTxt],
+      ['Non-qualified deferral', $('pnqon').checked ? esc(val('pnqpct')) + '% of excess income, paid in ' + esc(val('pnqn')) + ' installment' + (val('pnqn') === '1' ? '' : 's') : 'Off'],
+      Object.keys(NQ_OVR).length ? ['Non-qualified elections by year', Object.keys(NQ_OVR).sort().map(y => y + ': ' + (NQ_OVR[y].on ? Math.round(NQ_OVR[y].pct * 100) + '%' : 'none')).join(', ')] : null,
+      ['Social Security at full retirement age', m0(numVal('pssn', 0, 1e12)) + ' a month (today’s dollars), starting at age ' + esc(val('pssage'))],
+      ['Other taxable retirement income', m0(numVal('pother', 0, 1e12)) + ' a year (today’s dollars)'], ['Projected through age', esc(val('pend'))]])}</div>
+  </div></section>`;
+
+  // Compensation for the year
+  h += `<section><h2>Compensation, ${L.year}</h2><div class="grid2"><div>${kv([['Salary', m0(r.salary)], ['Short term incentive (STI)', m0(r.sti)], ['Long term incentive (LTI) granted', m0(r.lti)], ['Domestic per diem', m0(r.perDiem)],
+      ['Company 401k (NEC)', m0(r.nec.inPlan)], ['Profit sharing (401k)', m0(r.ps.inPlan)], ['Cash balance plan', m0(r.mb)], ['Excess income', m0(r.excess)], ['Total compensation', m0(r.totalComp), 'tot']])}</div>
+    <div>${kv([['Self 401k contribution (from pay)', m0(r.self)], ['Total 401k contributions', m0(r.total401k)], ['401k deferral limit + catch-up', m0(r.selfCap)], ['Age at year end', r.ageEnd],
+      ['Compensation limit 401(a)(17)', m0(r.lim.comp)], ['Annual additions limit 415(c)', m0(r.lim.additions)], ['Per diem rate', '$' + r.pdRate.toFixed(2) + ' per hour']])}</div></div></section>`;
+
+  // Compensation by year
+  h += `<section class="long"><h2>Compensation by year, ${L.firstYear}–${L.finalYear}</h2><table><thead><tr><th>Year</th><th>Age</th><th>Salary</th><th>STI</th><th>LTI granted</th><th>Per diem</th><th>Self 401k</th><th>Company 401k</th><th>Cash balance plan</th><th>Excess income</th><th>Total compensation</th></tr></thead><tbody>` +
+    L.rows.map(x => `<tr class="${x.year === L.year ? 'hl' : ''}"><td>${x.year}</td><td>${x.ageEnd}</td><td>${m0(x.salary)}</td><td>${m0(x.sti)}</td><td>${m0(x.lti)}</td><td>${m0(x.perDiem)}</td><td>${m0(x.self)}</td><td>${m0(x.nec.inPlan + x.ps.inPlan)}</td><td>${m0(x.mb)}</td><td>${m0(x.excess)}</td><td><b>${m0(x.totalComp)}</b></td></tr>`).join('') +
+    `</tbody></table></section>`;
+
+  // Tax
+  if (T) {
+    h += `<section><h2>Federal income tax estimate, ${T.year}${T.retired ? ' (retired)' : ''}</h2><div class="grid2"><div>${kv([
+      ['Filing status', T.fsTxt + (T.kids || T.deps ? `, ${T.kids} child${T.kids === 1 ? '' : 'ren'}, ${T.deps} other dependent${T.deps === 1 ? '' : 's'}` : '')],
+      ['Gross income', m0(T.gross)], T.ltiVest ? ['  includes LTI vesting', m0(T.ltiVest)] : null, T.nqDist ? ['  includes non-qualified distribution', m0(T.nqDist)] : null, T.rmdInc ? ['  includes taxable RMDs', m0(T.rmdInc)] : null, T.ssBen ? ['Social Security benefit (' + m0(T.ssTx) + ' taxable)', m0(T.ssBen)] : null,
+      T.pre401k ? ['Less pre-tax self 401k', '−' + m0(T.pre401k)] : null, T.nqDefer ? ['Less deferred to non-qualified plan', '−' + m0(T.nqDefer)] : null,
+      ['Adjusted gross income', m0(T.agi)], ['Less standard deduction', '−' + m0(T.std + T.senior)], ['Taxable income', m0(T.ti), 'tot']])}</div>
+      <div>${kv([['Tax on ordinary income', m0(T.ordTax)], T.ltTax ? ['Tax on long-term gains', m0(T.ltTax)] : null, T.creditUsed ? ['Less dependent credits', '−' + m0(T.creditUsed)] : null, T.niit ? ['Net investment income tax', m0(T.niit)] : null,
+      ['Federal income tax', m0(T.tax), 'tot'], ['Effective rate (of gross income)', pc(T.eff)], ['Effective rate (of taxable income)', pc(T.effTi)], ['Marginal bracket', Math.round(T.rate * 100) + '%'],
+      ['Room to next bracket', T.room == null ? 'In the top bracket' : m0(T.room) + ' before ' + Math.round(T.nextRate * 100) + '%']])}</div></div>
+      <p class="note">Federal income tax only; Social Security, Medicare and state tax are not included. ${T.projected ? 'Brackets for this year are projected from the 2027 IRS figures.' : 'IRS brackets and standard deduction for this year.'}</p></section>`;
+  }
+
+  // Retirement projection
+  if (M && P.length) {
+    const ret = M.retRow, f = M.firstRmd;
+    h += `<section><h2>Retirement accounts projection</h2><div class="grid2"><div>${kv([
+      ['Balances as of', 'January 1, ' + M.start], ['Total at retirement (end of ' + L.finalYear + ')', ret ? m0(ret.total) : '—'],
+      ret ? ['  traditional (401k + IRA, incl. cash balance rollover)', m0(ret.t401 + ret.tira)] : null, ret ? ['  Roth (401k + IRA)', m0(ret.r401 + ret.rira)] : null,
+      ret ? ['  non-qualified plan', m0(ret.nq)] : null, ret ? ['  LUV stock (vested + unvested)', m0(ret.luv + ret.luvUnvested)] : null, ret ? ['  in today’s dollars', m0(ret.real)] : null])}</div>
+      <div>${kv([['RMDs start', 'age ' + M.rmdAge], ['First RMD', f ? m0(f.rmd) + ' in ' + f.y : 'not within projection'], ['First RMD tax rate', f ? pc(f.rmdRate) : '—'],
+      ['Average RMD tax rate', M.totRmd ? pc(M.totTax / M.totRmd) : '—'], ['Total RMDs through age ' + M.endAge, m0(M.totRmd)], ['Balance at age ' + M.last.age, m0(M.last.total) + ' (' + m0(M.last.real) + ' today)']])}</div></div></section>`;
+    h += `<section class="long"><h2>Projected year-end balances, ${M.start}–${M.endYear}</h2><table><thead><tr><th>Year</th><th>Age</th><th>Traditional 401k</th><th>Roth 401k</th><th>Cash balance plan</th><th>Non-qualified plan</th><th>Traditional IRA</th><th>Roth IRA</th><th>LUV stock</th><th>Total</th><th>Today’s dollars</th><th>Non-qualified payout</th><th>RMD</th><th>RMD tax rate</th></tr></thead><tbody>` +
+      P.map(o => `<tr class="${o.y === L.finalYear ? 'hl' : ''}"><td>${o.y}${o.y === L.finalYear ? ' (retire)' : ''}</td><td>${o.age}</td><td>${m0(o.t401)}</td><td>${m0(o.r401)}</td><td>${m0(o.cb)}</td><td>${m0(o.nq)}</td><td>${m0(o.tira)}</td><td>${m0(o.rira)}</td><td>${m0(o.luv + o.luvUnvested)}</td><td><b>${m0(o.total)}</b></td><td>${m0(o.real)}</td><td>${o.nqDist ? m0(o.nqDist) : '—'}</td><td>${o.rmd ? m0(o.rmd) : '—'}</td><td>${o.rmd ? pc(o.rmdRate) : '—'}</td></tr>`).join('') +
+      `</tbody></table><p class="note">${pc(M.apr)} expected return, ${pc(M.lr)} LUV return, ${pc(M.cbr)} cash balance plan return, ${pc(M.infl / 100)} inflation. Contributions and RMDs are counted at mid-year. The cash balance plan rolls into the traditional 401k at the end of ${L.finalYear}.</p></section>`;
+  }
+
+  h += `<div class="foot">Prepared with the SWA Pilot Compensation Calculator on ${esc(longNow(d))}. Pay rates from the 2024 SWAPA pay tables; IRS limits, brackets and IRA ranges are actual for 2024–2027 and projected after. These are estimates for planning, not tax, legal or investment advice.</div>`;
+  return h;
+}
+let REPORT_DATE = null, ORIG_TITLE = null;
+const fileDay = d => isoDay(d).replace(/-/g, '_');
+function openReport() {
+  if (!LAST) { toast('Fix the highlighted inputs first'); return; }
+  REPORT_DATE = new Date();
+  if (ORIG_TITLE == null) ORIG_TITLE = document.title;
+  document.title = `${fileDay(REPORT_DATE)}_SWA_compensation_summary`;   // default name when saving as PDF
+  $('rpt').innerHTML = buildReport(REPORT_DATE);
+  $('rptwrap').hidden = false;
+  document.body.classList.add('rpt-open');
+  $('rptwrap').scrollTop = 0;
+  $('rptPrint').focus();
+}
+function closeReport() { if (ORIG_TITLE != null) document.title = ORIG_TITLE; $('rptwrap').hidden = true; document.body.classList.remove('rpt-open'); $('summaryBtn').focus(); }
+function copyText(text, okMsg) {
+  const fallback = () => { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); toast(ok ? okMsg : 'Copy blocked in this view'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg), fallback); else fallback();
+}
+const tsvRow = d => snapRow(d).map(x => typeof x === 'number' ? x.toFixed(2) : x).join('\t');
+// File downloads go through the artifact viewer's downloads capability; the buttons appear only where it is available.
+let DL = null;
+(async () => {
+  try { if (window.claude && typeof window.claude.use === 'function') DL = await window.claude.use('downloads'); } catch (e) { DL = null; }
+  if (DL) { $('rptDl').hidden = false; $('rptDlCsv').hidden = false; }
+})();
+async function saveFile(filename, data) {
+  if (!DL) { toast('Downloads are not available in this view. Use Print or save as PDF.'); return; }
+  try { await DL.save({filename, data}); toast('Saved ' + filename); }
+  catch (e) {
+    const c = e && e.code;
+    if (c === 'declined') return;
+    if (c === 'rate_limited') { toast('A save is already waiting for your answer'); return; }
+    toast('Download not available here. Use Print or save as PDF.');
+    if (['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(c)) { $('rptDl').hidden = true; $('rptDlCsv').hidden = true; }
+  }
+}
+const csvCell = x => typeof x === 'number' ? (Math.round(x * 100) / 100).toString() : '"' + String(x).replace(/"/g, '""') + '"';
+function summaryDoc(d) {
+  const css = Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${fileDay(d)}_SWA_compensation_summary</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"><style>${css}\nbody{background:#eef1f5;padding:24px 12px;margin:0;color:#1a2230}@media print{@page{margin:.5in}body{background:#fff;padding:0}.rpt{box-shadow:none;border-radius:0;padding:0;max-width:none}}</style></head><body><div class="rpt">${$('rpt').innerHTML}</div></body></html>`;
+}
+$('summaryBtn').addEventListener('click', openReport);
+$('rptClose').addEventListener('click', closeReport);
+$('rptPrint').addEventListener('click', () => window.print());
+$('rptDl').addEventListener('click', () => { const d = REPORT_DATE || new Date(); saveFile(`${fileDay(d)}_SWA_compensation_summary.html`, summaryDoc(d)); });
+$('rptDlCsv').addEventListener('click', () => { const d = REPORT_DATE || new Date(); saveFile(`${fileDay(d)}_SWA_account_history.csv`, SNAP_HEAD.map(csvCell).join(',') + '\n' + snapRow(d).map(csvCell).join(',') + '\n'); });
+$('rptCopyAll').addEventListener('click', () => copyText(SNAP_HEAD.join('\t') + '\n' + tsvRow(REPORT_DATE || new Date()), 'History table copied; paste it into a spreadsheet'));
+$('rptCopy').addEventListener('click', () => copyText(tsvRow(REPORT_DATE || new Date()), 'History row copied; paste it under your history headers'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('rptwrap').hidden) closeReport(); });
+
+/* ---------- dollar inputs: shown as $1,234 (whole dollars) ---------- */
+function moneyIds() { return ['toth', 'tpre', 'tst', 'tlt', 'pt401', 'pr401', 'pluv', 'pluvbas', 'pcb', 'pnqbal', 'ptira', 'pbasis', 'prira', 'pira', 'pother', 'pssn']; }
+$('pssnReset').addEventListener('click', () => { $('pssn').value = fmtMoneyStr(SS_DEFAULT); render(); });
+function fmtMoneyStr(s) {
+  const d = String(s).split('.')[0].replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return d === '' ? '' : '$' + Number(d).toLocaleString('en-US');
+}
+function formatMoneyInputs() { moneyIds().forEach(id => { $(id).value = fmtMoneyStr($(id).value) || '$0'; }); }
+moneyIds().forEach(id => {
+  const el = $(id);
+  el.type = 'text'; el.inputMode = 'numeric'; el.autocomplete = 'off';
+  el.addEventListener('input', () => {
+    const pos = el.selectionStart == null ? el.value.length : el.selectionStart;
+    const before = el.value.slice(0, pos).split('.')[0].replace(/\D/g, '').length;
+    const raw = el.value;
+    el.value = fmtMoneyStr(el.value);
+    if (String(raw).includes('.')) render();
+    let p = el.value.startsWith('$') ? 1 : 0, n = 0;
+    while (p < el.value.length && n < before) { if (/\d/.test(el.value[p])) n++; p++; }
+    try { el.setSelectionRange(p, p); } catch (e) {}
+  });
+  el.addEventListener('blur', () => { if (!el.value) { el.value = '$0'; render(); } });
+});
+
+/* ---------- save and restore inputs (kept in this browser) ---------- */
+const SAVE_KEY = 'swa-comp-calc-inputs-v1';
+const SAVE_CHECKS = ['tpd', 'troth', 'pirmax', 'pnqon'];
+const saveIds = () => ['year'].concat(IDS, TAX_IDS, ['tyear'], PROJ_IDS);
+function collectInputs() {
+  const v = {}, c = {};
+  saveIds().forEach(id => { v[id] = $(id).value; });
+  SAVE_CHECKS.forEach(id => { c[id] = $(id).checked; });
+  return {v, c, retEdited, applyMax, nqOvr: NQ_OVR, yearOvr: YEAR_OVR, savedAt: new Date().toISOString()};
+}
+function applyInputs(s) {
+  Object.entries(s.v || {}).forEach(([id, x]) => {
+    const el = $(id); if (!el || x == null) return;
+    if ((id === 'year' || id === 'tyear') && x !== '' && !Array.from(el.options).some(o => o.value === String(x))) el.add(new Option(x, x));
+    el.value = x;
+  });
+  Object.entries(s.c || {}).forEach(([id, x]) => { if ($(id)) $(id).checked = !!x; });
+  retEdited = !!s.retEdited; applyMax = !!s.applyMax;
+  $('retReset').hidden = !retEdited;
+  NQ_OVR = s.nqOvr && typeof s.nqOvr === 'object' ? s.nqOvr : {};
+  YEAR_OVR = s.yearOvr && typeof s.yearOvr === 'object' ? s.yearOvr : {};
+  formatMoneyInputs();
+}
+function readSaved() { try { const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+function showSaveStatus(s) { $('saveStatus').textContent = s && s.savedAt ? 'Inputs saved ' + longNow(new Date(s.savedAt)) + ' in this browser.' : 'Inputs not saved yet.'; }
+$('saveBtn').addEventListener('click', () => {
+  const s = collectInputs();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); showSaveStatus(s); toast('Inputs saved'); }
+  catch (e) { toast('Saving is blocked in this view'); }
+});
+$('loadBtn').addEventListener('click', () => {
+  const s = readSaved();
+  if (!s) { toast('No saved inputs in this browser'); return; }
+  applyInputs(s); render(); toast('Saved inputs restored');
+});
+$('clearSaveBtn').addEventListener('click', () => {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  showSaveStatus(null); toast('Saved inputs cleared');
+});
+// Reset all inputs: current year, generic pilot dates, 100 TFP, every account balance at $0; everything else back to its default.
+const RESET_ALL = {dob:'01/01/1970', doh:'01/01/2000', upg:'01/01/2010', tfp:'100'};
+const BALANCE_IDS = ['pt401', 'pr401', 'pluv', 'pluvbas', 'pcb', 'pnqbal', 'ptira', 'pbasis', 'prira'];
+$('resetAllBtn').addEventListener('click', () => {
+  setAll({...DEFAULTS, ...RESET_ALL});
+  setTax(); setProj();
+  BALANCE_IDS.forEach(id => { $(id).value = '$0'; });
+  const y = new Date().getFullYear();
+  if (!Array.from(yearSel.options).some(o => o.value === String(y))) yearSel.add(new Option(y, y));
+  yearSel.value = String(y);
+  $('pstart').value = String(y);
+  render();
+  toast('All inputs reset. Saved inputs are kept until you save again.');
+});
+
+setTax();
+setProj();
+setAll(DEFAULTS);
+// Open with the saved inputs when there are any.
+const SAVED_AT_START = readSaved();
+if (SAVED_AT_START) applyInputs(SAVED_AT_START);
+showSaveStatus(SAVED_AT_START);
+render();
+</script>
+
+</body></html>
